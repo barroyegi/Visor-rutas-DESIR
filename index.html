@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Visor Rutas Senderismo</title>
+  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/light/main.css" />
+</head>
+
+<body>
+  <div id="app">
+    <header>
+      <h1>Visor de Rutas de Senderismo</h1>
+    </header>
+    <div class="main-container">
+      <aside class="sidebar">
+        <div class="filters">
+          <label>Dificultad:
+            <select id="difficulty-filter">
+              <option value="All">Todas</option>
+              <option value="Fácil">Fácil</option>
+              <option value="Moderada">Moderada</option>
+              <option value="Difícil">Difícil</option>
+            </select>
+          </label>
+          <!-- Add more filters here -->
+        </div>
+
+        <div class="list-container">
+          <h3>Listado de Rutas</h3>
+          <div id="routes-list">Cargando rutas...</div>
+        </div>
+
+        <div class="details-container">
+          <h3>Detalle de Ruta</h3>
+          <div id="route-details">Selecciona una ruta para ver detalles.</div>
+        </div>
+      </aside>
+      <main id="viewDiv"></main>
+    </div>
+  </div>
+  <script type="module" src="/main.js"></script>
+</body>
+
+</html>
