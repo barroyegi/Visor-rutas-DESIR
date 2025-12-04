@@ -16,6 +16,7 @@
     </header>
     <div class="main-container">
       <aside class="sidebar">
+        <div class="sidebar-overlay"></div>
         <div class="sidebar-content">
           <div class="filters">
             <label>Dificultad:
@@ -26,7 +27,14 @@
                 <option value="Difícil">Difícil</option>
               </select>
             </label>
-            <!-- Add more filters here -->
+            <div class="filter-group" style="margin-top: 10px;">
+              <label>Distancia (km):</label>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="number" id="distance-min" placeholder="Min" min="0" step="0.1" style="width: 70px;">
+                <span>-</span>
+                <input type="number" id="distance-max" placeholder="Max" min="0" step="0.1" style="width: 70px;">
+              </div>
+            </div>
           </div>
 
           <div class="list-container">

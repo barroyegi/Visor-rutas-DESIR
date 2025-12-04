@@ -1,7 +1,7 @@
 import Map from "@arcgis/core/Map.js";
 import MapView from "@arcgis/core/views/MapView.js";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer.js";
-import WMSLayer from "@arcgis/core/layers/WMSLayer.js";
+import FeatureLayer from "@arcgis/core/layers/FeatureLayer.js";
 import Graphic from "@arcgis/core/Graphic.js";
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine.js";
 import { config } from "./config.js";
@@ -30,13 +30,21 @@ export async function initializeMap(containerId) {
         zoom: 9
     });
 
-    // Add Navarra borders WMS layer
-    const navarraLayer = new WMSLayer({
-        url: config.navarraWMS.url,
-        sublayers: [{
-            name: config.navarraWMS.layerName
-        }],
-        opacity: 0.3, // Reduced opacity for subtle outline appearance
+    // Add Navarra borders Feature Layer
+    const navarraLayer = new FeatureLayer({
+        url: "https://services5.arcgis.com/FZTIUdZkataugPvd/arcgis/rest/services/fcNavarra_limites/FeatureServer/0",
+        renderer: {
+            type: "simple",
+            symbol: {
+                type: "simple-fill",
+                color: [0, 0, 0, 0], // Transparent fill
+                outline: {
+                    color: [128, 128, 128], // Gray outline
+                    width: 2
+                }
+            }
+        },
+        opacity: 1.0,
         popupEnabled: false
     });
     map.add(navarraLayer);
@@ -164,7 +172,7 @@ export function renderStartPoints(features) {
             geometry: pointGeometry,
             symbol: {
                 type: "picture-marker",
-                url: "icons/hiking.svg",
+                url: "/icons/hiking.svg",
                 width: "30px",
                 height: "30px"
             },
