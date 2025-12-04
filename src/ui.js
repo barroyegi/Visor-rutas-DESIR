@@ -79,17 +79,55 @@ export function initFilters(routes, onFilterChange) {
 }
 
 export function renderRouteDetails(attributes) {
-  const container = document.getElementById("route-details");
+  const container = document.querySelector(".details-container");
+  const contentDiv = document.getElementById("route-details");
+  const sidebar = document.querySelector(".sidebar");
+
   if (!attributes) {
-    container.innerHTML = "<p>Select a route to see details.</p>";
+    // Hide details
+    container.classList.remove("active");
+    sidebar.classList.remove("details-open");
     return;
   }
 
-  container.innerHTML = `
-    <h3>${attributes[config.fields.name]}</h3>
-    <p><strong>Distance:</strong> ${attributes[config.fields.distance]}</p>
-    <p><strong>Elevation:</strong> ${attributes[config.fields.elevation]}</p>
-    <p><strong>Difficulty:</strong> ${attributes[config.fields.difficulty]}</p>
-    <p><strong>Duration:</strong> ${attributes[config.fields.duration]}</p>
+  // Show details
+  container.classList.add("active");
+  sidebar.classList.add("details-open");
+
+  contentDiv.innerHTML = `
+    <div class="details-header">
+      <h3>${attributes[config.fields.name]}</h3>
+      <button class="close-details-btn" id="close-details-btn">&times;</button>
+    </div>
+    <p><strong>Distancia:</strong> ${attributes[config.fields.distance]} km</p>
+    <p><strong>Desnivel:</strong> ${attributes[config.fields.elevation]} m</p>
+    <p><strong>Dificultad:</strong> ${attributes[config.fields.difficulty]}</p>
+    <p><strong>Duración:</strong> ${attributes[config.fields.duration]}</p>
+    
+    <h4>Descripción</h4>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    
+    <h4>Fotos</h4>
+    <div style="display: flex; gap: 10px; overflow-x: auto;">
+      <div style="min-width: 100px; height: 100px; background-color: #eee; display: flex; align-items: center; justify-content: center;">Foto 1</div>
+      <div style="min-width: 100px; height: 100px; background-color: #eee; display: flex; align-items: center; justify-content: center;">Foto 2</div>
+    </div>
   `;
+
+  // Add event listener to close button
+  document.getElementById("close-details-btn").addEventListener("click", () => {
+    closeRouteDetails();
+  });
+}
+
+export function closeRouteDetails() {
+  const container = document.querySelector(".details-container");
+  const sidebar = document.querySelector(".sidebar");
+  
+  container.classList.remove("active");
+  sidebar.classList.remove("details-open");
+  
+  // Also clear map selection/elevation profile if needed
+  // We can dispatch an event or export a function to clear map selection
+  document.dispatchEvent(new CustomEvent("clearSelection"));
 }

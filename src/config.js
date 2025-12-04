@@ -24,5 +24,9 @@ export const config = {
         duration: "TiempoEstimado", // Might not exist
         xStart: "XStart",
         yStart: "YStart"
+    },
+    navarraWMS: {
+        url: "https://idena.navarra.es/ogc/ows",
+        layerName: "REFERE_Pol_Navarra"
     }
 };

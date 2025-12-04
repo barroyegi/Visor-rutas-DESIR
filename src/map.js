@@ -1,17 +1,26 @@
 import Map from "@arcgis/core/Map.js";
 import MapView from "@arcgis/core/views/MapView.js";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer.js";
+import WMSLayer from "@arcgis/core/layers/WMSLayer.js";
 import Graphic from "@arcgis/core/Graphic.js";
+import * as geometryEngine from "@arcgis/core/geometry/geometryEngine.js";
 import { config } from "./config.js";
 import { fetchRouteGeometry } from "./data.js";
+import { initChart, updateChartData, highlightChartPoint, clearChart } from "./chart.js";
 
 let view;
+let map;
 let startPointsLayer;
 let routeLayer;
+let cursorLayer; // Layer for the map cursor
+
+let currentRouteGeometry = null;
+let currentRouteSamples = null;
 
 export async function initializeMap(containerId) {
-    const map = new Map({
-        basemap: "topo-vector"
+    map = new Map({
+        basemap: "topo-vector",
+        ground: "world-elevation" // Enable world elevation service
     });
 
     view = new MapView({
@@ -20,6 +29,29 @@ export async function initializeMap(containerId) {
         center: [-1.6, 42.8], // Navarra aproximada
         zoom: 9
     });
+
+    // Add Navarra borders WMS layer
+    const navarraLayer = new WMSLayer({
+        url: config.navarraWMS.url,
+        sublayers: [{
+            name: config.navarraWMS.layerName
+        }],
+        opacity: 0.3, // Reduced opacity for subtle outline appearance
+        popupEnabled: false
+    });
+    map.add(navarraLayer);
+
+    // Initialize Chart
+    initChart("elevation-chart", (index) => {
+        // Chart -> Map Sync
+        if (currentRouteSamples && currentRouteSamples[index]) {
+            const sample = currentRouteSamples[index];
+            updateMapCursor(sample.x, sample.y);
+        } else {
+            console.warn("No sample found for index:", index);
+        }
+    });
+
     // Cursor pointer al pasar por startPointsLayer
     view.on("pointer-move", async evt => {
         const hit = await view.hitTest(evt);
@@ -32,6 +64,26 @@ export async function initializeMap(containerId) {
             view.container.style.cursor = "default";
             removeHighlight();
         }
+
+        // Map -> Chart Sync
+        if (currentRouteGeometry) {
+            const point = view.toMap(evt);
+            if (point) {
+                const nearestPoint = geometryEngine.nearestCoordinate(currentRouteGeometry, point);
+                const distanceToLine = geometryEngine.distance(point, nearestPoint.coordinate, "meters");
+
+                if (distanceToLine < 100) {
+                    console.log("Mouse near route! Distance:", distanceToLine.toFixed(1), "m");
+                    updateMapCursor(nearestPoint.coordinate.x, nearestPoint.coordinate.y);
+
+                    const nearestSample = findNearestSample(nearestPoint.coordinate);
+                    if (nearestSample) {
+                        console.log("Highlighting chart at distance:", nearestSample.distance.toFixed(2), "km");
+                        highlightChartPoint(nearestSample.distance);
+                    }
+                }
+            }
+        }
     });
 
     // Layer for Start Points
@@ -41,6 +93,10 @@ export async function initializeMap(containerId) {
     // Layer for Selected Route
     routeLayer = new GraphicsLayer();
     map.add(routeLayer);
+
+    // Layer for Cursor
+    cursorLayer = new GraphicsLayer();
+    map.add(cursorLayer);
 
     view.on("click", async (event) => {
         const response = await view.hitTest(event);
@@ -54,6 +110,16 @@ export async function initializeMap(containerId) {
         }
     });
 
+    // Listen for clearSelection event from UI
+    document.addEventListener("clearSelection", () => {
+        routeLayer.removeAll();
+        cursorLayer.removeAll();
+        document.getElementById("chart-container").classList.remove("active");
+        clearChart();
+        currentRouteGeometry = null;
+        currentRouteSamples = null;
+    });
+
     return view;
 }
 
@@ -62,7 +128,6 @@ let highlightedGraphic = null;
 export function highlightPoint(objectId) {
     if (highlightedGraphic && highlightedGraphic.attributes.OBJECTID === objectId) return;
 
-    // Reset previous
     removeHighlight();
 
     const graphic = startPointsLayer.graphics.find(g => g.attributes.OBJECTID === objectId);
@@ -89,12 +154,10 @@ export function renderStartPoints(features) {
     startPointsLayer.removeAll();
 
     const graphics = features.map(f => {
-        // If feature is a Line, we need to extract the start point.
-        // If feature is a Point, use geometry.
         let pointGeometry = f.geometry;
 
         if (f.geometry.type === "polyline") {
-            pointGeometry = f.geometry.getPoint(0, 0); // First path, first point
+            pointGeometry = f.geometry.getPoint(0, 0);
         }
 
         return new Graphic({
@@ -112,18 +175,60 @@ export function renderStartPoints(features) {
     startPointsLayer.addMany(graphics);
 }
 
+function updateMapCursor(x, y) {
 
+    cursorLayer.removeAll();
+    const point = {
+        type: "point",
+        x: x,
+        y: y,
+        spatialReference: currentRouteGeometry?.spatialReference || view.spatialReference
+    };
+
+
+    const graphic = new Graphic({
+        geometry: point,
+        symbol: {
+            type: "simple-marker",
+            color: [255, 0, 0, 0.8], // Red with transparency
+            size: "16px", // Larger size
+            outline: {
+                color: [255, 255, 255, 1], // White outline
+                width: 3
+            }
+        }
+    });
+
+    cursorLayer.add(graphic);
+}
+
+function findNearestSample(point) {
+    if (!currentRouteSamples) return null;
+
+    let minDist = Infinity;
+    let nearest = null;
+
+    for (const sample of currentRouteSamples) {
+        const dx = sample.x - point.x;
+        const dy = sample.y - point.y;
+        const dist = dx * dx + dy * dy;
+        if (dist < minDist) {
+            minDist = dist;
+            nearest = sample;
+        }
+    }
+    return nearest;
+}
 
 
 export async function selectRoute(objectId) {
-    // 1. Fetch full geometry
+
     const feature = await fetchRouteGeometry(objectId);
 
     if (feature) {
-        // 2. Clear previous selection
         routeLayer.removeAll();
+        cursorLayer.removeAll();
 
-        // 3. Add new route graphic
         const graphic = new Graphic({
             geometry: feature.geometry,
             symbol: {
@@ -135,11 +240,56 @@ export async function selectRoute(objectId) {
         });
 
         routeLayer.add(graphic);
+        currentRouteGeometry = feature.geometry;
 
-        // 4. Zoom to route
         view.goTo(feature.geometry.extent.expand(1.2));
-
-        // 5. Update UI (Side panel details) - Dispatch event or call UI function
         document.dispatchEvent(new CustomEvent("routeSelected", { detail: feature.attributes }));
+
+        const container = document.getElementById("chart-container");
+        container.classList.add("active");
+
+        try {
+            const elevationResult = await map.ground.queryElevation(feature.geometry);
+
+            const paths = elevationResult.geometry.paths[0];
+
+            // Calculate geodesic distances properly
+            const samples = [];
+            let cumulativeDistance = 0; // in meters
+
+            for (let i = 0; i < paths.length; i++) {
+                const point = paths[i];
+
+                if (i > 0) {
+                    // Create a segment from previous point to current point
+                    const segment = {
+                        type: "polyline",
+                        paths: [[paths[i - 1], point]],
+                        spatialReference: elevationResult.geometry.spatialReference
+                    };
+                    // Calculate geodesic length in meters
+                    const segmentLength = geometryEngine.geodesicLength(segment, "meters");
+                    cumulativeDistance += segmentLength;
+                }
+
+                samples.push({
+                    x: point[0],
+                    y: point[1],
+                    elevation: point[2],
+                    distance: cumulativeDistance / 1000 // Convert to km
+                });
+            }
+
+            currentRouteSamples = samples;
+
+            const distances = samples.map(s => s.distance);
+            const elevations = samples.map(s => s.elevation);
+
+
+            updateChartData(distances, elevations);
+
+        } catch (error) {
+            console.error("!!! Error querying elevation !!!", error);
+        }
     }
 }
