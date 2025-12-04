@@ -211,7 +211,7 @@ export function updateChartData(distances, elevations) {
 
         const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
 
-        // Green -> Yellow -> Orange -> Red -> Violet
+
         gradient.addColorStop(0, '#8FB27D');
         gradient.addColorStop(1, '#EBBD68');
 

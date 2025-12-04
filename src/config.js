@@ -25,8 +25,9 @@ export const config = {
         xStart: "XStart",
         yStart: "YStart"
     },
-    navarraWMS: {
-        url: "https://idena.navarra.es/ogc/ows",
-        layerName: "REFERE_Pol_Navarra"
+    navarraFeatureService: {
+        // Replace this URL with your ArcGIS Online Feature Service URL
+        // Example: "https://services.arcgis.com/YOUR_ORG/arcgis/rest/services/YOUR_SERVICE/FeatureServer/0"
+        url: "YOUR_FEATURE_SERVICE_URL_HERE"
     }
 };

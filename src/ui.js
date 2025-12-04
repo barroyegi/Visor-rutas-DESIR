@@ -69,29 +69,52 @@ export function renderTable(routes, containerId) {
 }
 
 export function initFilters(routes, onFilterChange) {
-  const filterInput = document.getElementById("difficulty-filter");
+  const difficultyFilter = document.getElementById("difficulty-filter");
+  const distanceMin = document.getElementById("distance-min");
+  const distanceMax = document.getElementById("distance-max");
 
-  filterInput.addEventListener("change", (e) => {
-    const val = e.target.value;
-    const filtered = val === "All" ? routes : routes.filter(r => r[config.fields.difficulty] === val);
+  const applyFilters = () => {
+    let filtered = routes;
+
+    // Difficulty filter
+    const difficulty = difficultyFilter.value;
+    if (difficulty !== "All") {
+      filtered = filtered.filter(r => r[config.fields.difficulty] === difficulty);
+    }
+
+    // Distance filter
+    const min = parseFloat(distanceMin.value) || 0;
+    const max = parseFloat(distanceMax.value) || Infinity;
+    filtered = filtered.filter(r => {
+      const dist = r[config.fields.distance];
+      return dist >= min && dist <= max;
+    });
+
     onFilterChange(filtered);
-  });
+  };
+
+  difficultyFilter.addEventListener("change", applyFilters);
+  distanceMin.addEventListener("input", applyFilters);
+  distanceMax.addEventListener("input", applyFilters);
 }
 
 export function renderRouteDetails(attributes) {
   const container = document.querySelector(".details-container");
   const contentDiv = document.getElementById("route-details");
+  const overlay = document.querySelector(".sidebar-overlay");
   const sidebar = document.querySelector(".sidebar");
 
   if (!attributes) {
     // Hide details
     container.classList.remove("active");
+    overlay.classList.remove("active");
     sidebar.classList.remove("details-open");
     return;
   }
 
-  // Show details
+  // Show details and overlay, block sidebar scroll
   container.classList.add("active");
+  overlay.classList.add("active");
   sidebar.classList.add("details-open");
 
   contentDiv.innerHTML = `
@@ -118,16 +141,20 @@ export function renderRouteDetails(attributes) {
   document.getElementById("close-details-btn").addEventListener("click", () => {
     closeRouteDetails();
   });
+  document.querySelector(".sidebar-overlay").addEventListener("click", () => {
+    closeRouteDetails();
+  });
 }
 
 export function closeRouteDetails() {
   const container = document.querySelector(".details-container");
+  const overlay = document.querySelector(".sidebar-overlay");
   const sidebar = document.querySelector(".sidebar");
-  
+
   container.classList.remove("active");
+  overlay.classList.remove("active");
   sidebar.classList.remove("details-open");
-  
+
   // Also clear map selection/elevation profile if needed
-  // We can dispatch an event or export a function to clear map selection
   document.dispatchEvent(new CustomEvent("clearSelection"));
 }

@@ -40,6 +40,7 @@ header h1 {
 }
 
 .sidebar {
+    position: relative;
     width: 30%;
     background-color: white;
     border-right: 1px solid #ddd;
@@ -50,12 +51,68 @@ header h1 {
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
 }
 
+/* Block sidebar scroll when details are open */
+.sidebar.details-open {
+    overflow: hidden;
+}
+
+/* Semi-transparent overlay for sidebar when details are open */
+.sidebar-overlay {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 15;
+}
+
+.sidebar-overlay.active {
+    display: block;
+}
+
 .filters,
-.list-container,
-.details-container {
+.list-container {
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid #eee;
+}
+
+/* Details container - centered with visible background */
+.details-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-height: 85%;
+    background-color: white;
+    z-index: 20;
+    display: none;
+    padding: 1.5rem;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+}
+
+.details-container.active {
+    display: block;
+}
+
+.details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.close-details-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
 }
 
 #viewDiv {
