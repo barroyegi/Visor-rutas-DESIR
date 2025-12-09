@@ -6,7 +6,7 @@ export function renderTable(routes, containerId) {
   container.innerHTML = "";
 
   if (routes.length === 0) {
-    container.innerHTML = "<p>No routes found.</p>";
+    container.innerHTML = "<p>No se han encontrado rutas que cumplan los criterios.</p>";
     return;
   }
 
@@ -70,7 +70,10 @@ export function renderTable(routes, containerId) {
 
 export function initFilters(routes, onFilterChange) {
   const difficultyFilter = document.getElementById("difficulty-filter");
-  const distanceSlider = document.getElementById("distance-slider");
+  const sliderOne = document.getElementById("distance-slider-min");
+  const sliderTwo = document.getElementById("distance-slider-max");
+  const sliderTrack = document.getElementById("slider-track");
+  const sliderMinLabel = document.getElementById("slider-min-label");
   const sliderMaxLabel = document.getElementById("slider-max-label");
 
   // Dropdown toggle functionality
@@ -83,15 +86,41 @@ export function initFilters(routes, onFilterChange) {
   const applyDistanceFilter = document.getElementById("apply-distance-filter");
   const applyMoreFilters = document.getElementById("apply-more-filters");
 
-  // Update slider label as it moves
-  distanceSlider.addEventListener("input", () => {
-    const value = parseFloat(distanceSlider.value);
-    if (value >= 50) {
+  const minGap = 2; // Minimum gap between sliders
+
+  function fillSlider() {
+    const range = 50; // Max value defined in HTML
+    const percent1 = (sliderOne.value / range) * 100;
+    const percent2 = (sliderTwo.value / range) * 100;
+    sliderTrack.style.background = `linear-gradient(to right, #ddd ${percent1}%, #ff8c00 ${percent1}%, #ff8c00 ${percent2}%, #ddd ${percent2}%)`;
+  }
+
+  function slideOne() {
+    if (parseInt(sliderTwo.value) - parseInt(sliderOne.value) <= minGap) {
+      sliderOne.value = parseInt(sliderTwo.value) - minGap;
+    }
+    sliderMinLabel.textContent = `${sliderOne.value} km`;
+    fillSlider();
+  }
+
+  function slideTwo() {
+    if (parseInt(sliderTwo.value) - parseInt(sliderOne.value) <= minGap) {
+      sliderTwo.value = parseInt(sliderOne.value) + minGap;
+    }
+    if (parseFloat(sliderTwo.value) >= 50) {
       sliderMaxLabel.textContent = "+ 50 km";
     } else {
-      sliderMaxLabel.textContent = `+ ${value} km`;
+      sliderMaxLabel.textContent = `${sliderTwo.value} km`;
     }
-  });
+    fillSlider();
+  }
+
+  // Initial fill
+  fillSlider();
+
+  // Event listeners for sliders
+  sliderOne.addEventListener("input", slideOne);
+  sliderTwo.addEventListener("input", slideTwo);
 
   // Toggle distance dropdown
   distanceDropdownBtn.addEventListener("click", (e) => {
@@ -133,11 +162,13 @@ export function initFilters(routes, onFilterChange) {
       filtered = filtered.filter(r => r[config.fields.difficulty] === difficulty);
     }
 
-    // Distance filter (maximum distance)
-    const maxDistance = parseFloat(distanceSlider.value);
+    // Distance filter (min and max)
+    const minDistance = parseFloat(sliderOne.value);
+    const maxDistance = parseFloat(sliderTwo.value);
+
     filtered = filtered.filter(r => {
       const dist = r[config.fields.distance];
-      return dist <= maxDistance;
+      return dist >= minDistance && dist <= maxDistance;
     });
 
     onFilterChange(filtered);
