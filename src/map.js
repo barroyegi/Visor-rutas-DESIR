@@ -301,3 +301,9 @@ export async function selectRoute(objectId) {
         }
     }
 }
+
+export function zoomToGraphics(graphics) {
+    if (graphics && graphics.length > 0) {
+        view.goTo(graphics);
+    }
+}
