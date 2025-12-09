@@ -70,9 +70,60 @@ export function renderTable(routes, containerId) {
 
 export function initFilters(routes, onFilterChange) {
   const difficultyFilter = document.getElementById("difficulty-filter");
-  const distanceMin = document.getElementById("distance-min");
-  const distanceMax = document.getElementById("distance-max");
+  const distanceSlider = document.getElementById("distance-slider");
+  const sliderMaxLabel = document.getElementById("slider-max-label");
 
+  // Dropdown toggle functionality
+  const distanceDropdownBtn = document.getElementById("distance-dropdown-btn");
+  const distanceDropdownContent = document.getElementById("distance-dropdown-content");
+  const moreFiltersDropdownBtn = document.getElementById("more-filters-dropdown-btn");
+  const moreFiltersDropdownContent = document.getElementById("more-filters-dropdown-content");
+
+  // Apply filter buttons
+  const applyDistanceFilter = document.getElementById("apply-distance-filter");
+  const applyMoreFilters = document.getElementById("apply-more-filters");
+
+  // Update slider label as it moves
+  distanceSlider.addEventListener("input", () => {
+    const value = parseFloat(distanceSlider.value);
+    if (value >= 50) {
+      sliderMaxLabel.textContent = "+ 50 km";
+    } else {
+      sliderMaxLabel.textContent = `+ ${value} km`;
+    }
+  });
+
+  // Toggle distance dropdown
+  distanceDropdownBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    distanceDropdownBtn.classList.toggle("active");
+    distanceDropdownContent.classList.toggle("active");
+    // Close other dropdown
+    moreFiltersDropdownBtn.classList.remove("active");
+    moreFiltersDropdownContent.classList.remove("active");
+  });
+
+  // Toggle more filters dropdown
+  moreFiltersDropdownBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    moreFiltersDropdownBtn.classList.toggle("active");
+    moreFiltersDropdownContent.classList.toggle("active");
+    // Close other dropdown
+    distanceDropdownBtn.classList.remove("active");
+    distanceDropdownContent.classList.remove("active");
+  });
+
+  // Close dropdowns when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".filter-dropdown")) {
+      distanceDropdownBtn.classList.remove("active");
+      distanceDropdownContent.classList.remove("active");
+      moreFiltersDropdownBtn.classList.remove("active");
+      moreFiltersDropdownContent.classList.remove("active");
+    }
+  });
+
+  // Apply filters function
   const applyFilters = () => {
     let filtered = routes;
 
@@ -82,20 +133,31 @@ export function initFilters(routes, onFilterChange) {
       filtered = filtered.filter(r => r[config.fields.difficulty] === difficulty);
     }
 
-    // Distance filter
-    const min = parseFloat(distanceMin.value) || 0;
-    const max = parseFloat(distanceMax.value) || Infinity;
+    // Distance filter (maximum distance)
+    const maxDistance = parseFloat(distanceSlider.value);
     filtered = filtered.filter(r => {
       const dist = r[config.fields.distance];
-      return dist >= min && dist <= max;
+      return dist <= maxDistance;
     });
 
     onFilterChange(filtered);
   };
 
-  difficultyFilter.addEventListener("change", applyFilters);
-  distanceMin.addEventListener("input", applyFilters);
-  distanceMax.addEventListener("input", applyFilters);
+  // Apply distance filter when button is clicked
+  applyDistanceFilter.addEventListener("click", () => {
+    applyFilters();
+    // Close dropdown
+    distanceDropdownBtn.classList.remove("active");
+    distanceDropdownContent.classList.remove("active");
+  });
+
+  // Apply more filters when button is clicked
+  applyMoreFilters.addEventListener("click", () => {
+    applyFilters();
+    // Close dropdown
+    moreFiltersDropdownBtn.classList.remove("active");
+    moreFiltersDropdownContent.classList.remove("active");
+  });
 }
 
 export function renderRouteDetails(attributes) {

@@ -19,20 +19,40 @@
         <div class="sidebar-overlay"></div>
         <div class="sidebar-content">
           <div class="filters">
-            <label>Dificultad:
-              <select id="difficulty-filter">
-                <option value="All">Todas</option>
-                <option value="Fácil">Fácil</option>
-                <option value="Moderada">Moderada</option>
-                <option value="Difícil">Difícil</option>
-              </select>
-            </label>
-            <div class="filter-group" style="margin-top: 10px;">
-              <label>Distancia (km):</label>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <input type="number" id="distance-min" placeholder="Min" min="0" step="0.1" style="width: 70px;">
-                <span>-</span>
-                <input type="number" id="distance-max" placeholder="Max" min="0" step="0.1" style="width: 70px;">
+            <!-- Distance Dropdown -->
+            <div class="filter-dropdown">
+              <button class="filter-dropdown-btn" id="distance-dropdown-btn">
+                Distancia
+                <span class="dropdown-chevron">▼</span>
+              </button>
+              <div class="filter-dropdown-content" id="distance-dropdown-content">
+                <div class="slider-container">
+                  <input type="range" id="distance-slider" min="0" max="50" value="50" step="0.5" class="custom-slider">
+                  <div class="slider-labels">
+                    <span id="slider-min-label">0 km</span>
+                    <span id="slider-max-label">+ 50 km</span>
+                  </div>
+                </div>
+                <button class="apply-filter-btn" id="apply-distance-filter">Aplicar filtro</button>
+              </div>
+            </div>
+
+            <!-- More Filters Dropdown -->
+            <div class="filter-dropdown">
+              <button class="filter-dropdown-btn" id="more-filters-dropdown-btn">
+                Más Filtros
+                <span class="dropdown-chevron">▼</span>
+              </button>
+              <div class="filter-dropdown-content" id="more-filters-dropdown-content">
+                <label>Dificultad:
+                  <select id="difficulty-filter">
+                    <option value="All">Todas</option>
+                    <option value="Fácil">Fácil</option>
+                    <option value="Moderada">Moderada</option>
+                    <option value="Difícil">Difícil</option>
+                  </select>
+                </label>
+                <button class="apply-filter-btn" id="apply-more-filters">Aplicar filtro</button>
               </div>
             </div>
           </div>
