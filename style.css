@@ -364,14 +364,14 @@ header h1 {
     bottom: 0;
     right: 0;
     width: 70%;
-    height: 250px;
+    height: 200px;
     background-color: rgba(255, 255, 255, 0.9);
     z-index: 5;
     display: none;
     border-top: 1px solid #ccc;
-    padding: 30px 10px 10px 10px;
     box-sizing: border-box;
 }
+
 
 #chart-container.active {
     display: block;
