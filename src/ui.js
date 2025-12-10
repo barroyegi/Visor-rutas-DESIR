@@ -38,6 +38,7 @@ export function renderTable(routes, containerId) {
         <div class="route-card-details">
           <div class="left-group">
             <span class="detail">${distRedondeada} km</span>
+            <span class="detail">${route[config.fields.desnivel_pos] || "N/A"}</span>
             <span class="detail">${route[config.fields.difficulty] || "N/A"}</span>
           </div>
         </div>

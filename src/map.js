@@ -4,6 +4,8 @@ import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer.js";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer.js";
 import Graphic from "@arcgis/core/Graphic.js";
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine.js";
+import BasemapGallery from "@arcgis/core/widgets/BasemapGallery.js";
+import Expand from "@arcgis/core/widgets/Expand.js";
 import { config } from "./config.js";
 import { fetchRouteGeometry } from "./data.js";
 import { initChart, updateChartData, highlightChartPoint, clearChart } from "./chart.js";
@@ -48,6 +50,18 @@ export async function initializeMap(containerId) {
         popupEnabled: false
     });
     map.add(navarraLayer);
+
+    // Basemap Gallery
+    const basemapGallery = new BasemapGallery({
+        view: view
+    });
+
+    const bgExpand = new Expand({
+        view: view,
+        content: basemapGallery
+    });
+
+    view.ui.add(bgExpand, "top-right");
 
     // Initialize Chart
     initChart("elevation-chart", (index) => {
@@ -250,7 +264,7 @@ export async function selectRoute(objectId) {
         routeLayer.add(graphic);
         currentRouteGeometry = feature.geometry;
 
-        view.goTo(feature.geometry.extent.expand(1.2));
+        view.goTo(feature.geometry.extent.expand(1.5), { padding: { bottom: 300 } });
         document.dispatchEvent(new CustomEvent("routeSelected", { detail: feature.attributes }));
 
         const container = document.getElementById("chart-container");
