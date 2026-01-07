@@ -2,6 +2,7 @@ import './style.css';
 import { initializeMap, renderStartPoints, zoomToGraphics } from './src/map.js';
 import { fetchRoutesList, fetchStartPoints } from './src/data.js';
 import { renderTable, initFilters, renderRouteDetails } from './src/ui.js';
+import { initLanguageSwitcher } from './src/i18n.js';
 
 async function init() {
     console.log("Initializing application...");
@@ -9,6 +10,9 @@ async function init() {
     // 1. Initialize Map
     const view = await initializeMap("viewDiv");
     console.log("Map initialized");
+
+    // Initialize Language Switcher
+    initLanguageSwitcher();
 
     // 2. Fetch Data
     const routes = await fetchRoutesList();
@@ -34,8 +38,19 @@ async function init() {
     });
 
     // 6. Listen for route selection (from Map or Table)
+    let currentRoute = null;
     document.addEventListener("routeSelected", (e) => {
-        renderRouteDetails(e.detail);
+        currentRoute = e.detail;
+        renderRouteDetails(currentRoute);
+    });
+
+    // 7. Listen for language change
+    document.addEventListener("languageChanged", () => {
+        console.log("Language changed, re-rendering...");
+        renderTable(routes, "routes-list");
+        if (currentRoute) {
+            renderRouteDetails(currentRoute);
+        }
     });
 }
 
