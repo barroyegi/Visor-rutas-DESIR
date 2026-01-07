@@ -21,7 +21,18 @@ export const config = {
         duration: "TiempoEstimado",
         desnivel_pos: "Desnivel_pos",
         xStart: "XStart",
-        yStart: "YStart"
+        yStart: "YStart",
+        // Language-specific field mappings
+        description: {
+            es: "Descripcion_es",
+            fr: "Descripcion_fr",
+            eus: "Descripcion_eus"
+        },
+        shortDesc: {
+            es: "Desc_breve_es",
+            fr: "Desc_breve_fr",
+            eus: "Desc_breve_eus"
+        }
     },
     navarraFeatureService: {
         // Replace this URL with your ArcGIS Online Feature Service URL

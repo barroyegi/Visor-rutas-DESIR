@@ -12,8 +12,14 @@
 <body>
   <div id="app">
     <header>
-      <h1>Visor de Rutas de Senderismo</h1>
+      <h1 data-i18n="title">Visor de Rutas de Senderismo</h1>
+      <div class="lang-switcher">
+        <button class="lang-btn active" data-lang="es">ES</button>
+        <button class="lang-btn" data-lang="fr">FR</button>
+        <button class="lang-btn" data-lang="eus">EUS</button>
+      </div>
     </header>
+
     <div class="main-container">
       <aside class="sidebar">
         <div class="sidebar-overlay"></div>
@@ -22,7 +28,7 @@
             <!-- Distance Dropdown -->
             <div class="filter-dropdown">
               <button class="filter-dropdown-btn" id="distance-dropdown-btn">
-                Distancia
+                <span data-i18n="distance">Distancia</span>
                 <span class="dropdown-chevron">▼</span>
               </button>
               <div class="filter-dropdown-content" id="distance-dropdown-content">
@@ -37,18 +43,19 @@
                     <span id="slider-max-label">+ 50 km</span>
                   </div>
                 </div>
-                <button class="apply-filter-btn" id="apply-distance-filter">Aplicar filtro</button>
+                <button class="apply-filter-btn" id="apply-distance-filter" data-i18n="applyFilter">Aplicar
+                  filtro</button>
               </div>
             </div>
 
             <!-- More Filters Dropdown -->
             <div class="filter-dropdown">
               <button class="filter-dropdown-btn" id="more-filters-dropdown-btn">
-                Más Filtros
+                <span data-i18n="moreFilters">Más Filtros</span>
                 <span class="dropdown-chevron">▼</span>
               </button>
               <div class="filter-dropdown-content" id="more-filters-dropdown-content">
-                <label>Dificultad:
+                <label><span data-i18n="difficulty">Dificultad</span>:
                   <select id="difficulty-filter">
                     <option value="All">Todas</option>
                     <option value="Fácil">Fácil</option>
@@ -56,20 +63,20 @@
                     <option value="Difícil">Difícil</option>
                   </select>
                 </label>
-                <button class="apply-filter-btn" id="apply-more-filters">Aplicar filtro</button>
+                <button class="apply-filter-btn" id="apply-more-filters" data-i18n="applyFilter">Aplicar filtro</button>
               </div>
             </div>
           </div>
 
           <div class="list-container">
-            <h3>Listado de Rutas</h3>
-            <div id="routes-list">Cargando rutas...</div>
+            <h3 data-i18n="routesList">Listado de Rutas</h3>
+            <div id="routes-list" data-i18n="loadingRoutes">Cargando rutas...</div>
           </div>
         </div>
 
         <div class="details-container">
-          <h3>Detalle de Ruta</h3>
-          <div id="route-details">Selecciona una ruta para ver detalles.</div>
+          <h3 data-i18n="routeDetails">Detalle de Ruta</h3>
+          <div id="route-details" data-i18n="selectRoute">Selecciona una ruta para ver detalles.</div>
         </div>
       </aside>
       <main id="viewDiv">
