@@ -2,6 +2,31 @@ import { config } from "./config.js";
 import { selectRoute, highlightPoint, removeHighlight } from "./map.js";
 import { t, tData, getCurrentLang } from "./i18n.js";
 
+function formatDuration(value) {
+  if (!value) return "N/A";
+
+  // If it's a number (timestamp), convert to Date
+  let date;
+  if (typeof value === 'number') {
+    date = new Date(value);
+  } else {
+    // Try to parse as date string
+    date = new Date(value);
+  }
+
+  if (isNaN(date.getTime())) {
+    // If parsing fails, try to extract time part with regex if it's a string like "30/12/1899 3:55:00"
+    const timeMatch = String(value).match(/(\d{1,2}:\d{2})/);
+    return timeMatch ? `${timeMatch[1]} h` : value;
+  }
+
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+
+  // Format as H:mm h
+  return `${hours}:${minutes.toString().padStart(2, '0')} h`;
+}
+
 export function renderTable(routes, containerId) {
   const container = document.getElementById(containerId);
   container.innerHTML = "";
@@ -311,7 +336,7 @@ export function renderRouteDetails(attributes) {
     <p><strong>${t("distance")}:</strong> ${attributes[config.fields.distance]} km</p>
     <p><strong>${t("elevation")}:</strong> ${attributes[config.fields.elevation]} m</p>
     <p><strong>${t("difficulty")}:</strong> ${tData("difficulty", attributes[config.fields.difficulty])}</p>
-    <p><strong>${t("duration")}:</strong> ${attributes[config.fields.duration]}</p>
+    <p><strong>${t("duration")}:</strong> ${formatDuration(attributes[config.fields.duration])}</p>
     
     <h4>${t("description")}</h4>
     <p>${attributes[config.fields.description[getCurrentLang()]] || attributes[config.fields.description.es] || "No description available"}</p>

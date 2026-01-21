@@ -68,7 +68,7 @@ export async function fetchStartPoints() {
 
         const query = new Query();
         query.where = "1=1";
-        query.returnGeometry = false; // We construct geometry manually
+        query.returnGeometry = true; // We need geometry for fallback
         query.outFields = [config.fields.name, "OBJECTID", config.fields.xStart, config.fields.yStart];
 
         const results = await layer.queryFeatures(query);
@@ -77,15 +77,26 @@ export async function fetchStartPoints() {
             const x = f.attributes[config.fields.xStart];
             const y = f.attributes[config.fields.yStart];
 
+            let pointGeometry;
+
             if (x != null && y != null) {
-                const point = new Point({
+                pointGeometry = new Point({
                     x: x,
                     y: y,
                     spatialReference: layer.spatialReference
                 });
+            } else if (f.geometry) {
+                // Fallback: use the first point of the geometry
+                if (f.geometry.type === "polyline") {
+                    pointGeometry = f.geometry.getPoint(0, 0);
+                } else if (f.geometry.type === "point") {
+                    pointGeometry = f.geometry;
+                }
+            }
 
+            if (pointGeometry) {
                 return new Graphic({
-                    geometry: point,
+                    geometry: pointGeometry,
                     attributes: f.attributes
                 });
             }
