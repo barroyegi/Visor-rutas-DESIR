@@ -6,6 +6,7 @@ import Graphic from "@arcgis/core/Graphic.js";
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine.js";
 import BasemapGallery from "@arcgis/core/widgets/BasemapGallery.js";
 import Expand from "@arcgis/core/widgets/Expand.js";
+import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import { config } from "./config.js";
 import { fetchRouteGeometry } from "./data.js";
 import { initChart, updateChartData, highlightChartPoint, clearChart } from "./chart.js";
@@ -108,8 +109,50 @@ export async function initializeMap(containerId) {
         }
     });
 
-    // Layer for Start Points
-    startPointsLayer = new GraphicsLayer();
+    // Layer for Start Points (FeatureLayer for clustering support)
+    startPointsLayer = new FeatureLayer({
+        source: [], // Initially empty
+        geometryType: "point",
+        spatialReference: { wkid: 4326 }, // Web Mercator
+        objectIdField: "OBJECTID",
+        fields: [
+            { name: "OBJECTID", type: "oid" },
+            { name: "name_1", type: "string" }
+        ],
+        renderer: {
+            type: "simple",
+            symbol: {
+                type: "picture-marker",
+                url: "/icons/hiking.svg",
+                width: "30px",
+                height: "30px"
+            }
+        },
+        featureReduction: {
+            type: "cluster",
+            clusterRadius: "100px",
+            clusterMinSize: "24px",
+            clusterMaxSize: "60px",
+            maxScale: 50000,
+            labelingInfo: [{
+                deconflictionStrategy: "none",
+                labelExpressionInfo: {
+                    expression: "$feature.cluster_count"
+                },
+                symbol: {
+                    type: "text",
+                    color: "black",
+                    haloColor: 'white',
+                    haloSize: '1.5px',
+                    font: {
+                        weight: "bold",
+                        size: "12px",
+                    }
+                },
+                labelPlacement: "center-center"
+            }]
+        }
+    });
     map.add(startPointsLayer);
 
     // Layer for Selected Route
@@ -124,7 +167,7 @@ export async function initializeMap(containerId) {
         const response = await view.hitTest(event);
         if (response.results.length > 0) {
             const graphic = response.results.filter(r => r.graphic.layer === startPointsLayer)[0]?.graphic;
-            if (graphic) {
+            if (graphic && !graphic.isAggregate) {
                 const objectId = graphic.attributes.OBJECTID;
                 console.log("Clicked start point:", objectId);
                 selectRoute(objectId);
@@ -144,6 +187,7 @@ export async function initializeMap(containerId) {
 
     return view;
 }
+
 
 let highlightedGraphic = null;
 
@@ -172,8 +216,14 @@ export function removeHighlight() {
     }
 }
 
-export function renderStartPoints(features) {
-    startPointsLayer.removeAll();
+export async function renderStartPoints(features) {
+    // For FeatureLayer, we use applyEdits to update features
+    const allGraphics = await startPointsLayer.queryFeatures();
+    if (allGraphics.features.length > 0) {
+        await startPointsLayer.applyEdits({
+            deleteFeatures: allGraphics.features
+        });
+    }
 
     const graphics = features.map(f => {
         let pointGeometry = f.geometry;
@@ -184,17 +234,13 @@ export function renderStartPoints(features) {
 
         return new Graphic({
             geometry: pointGeometry,
-            symbol: {
-                type: "picture-marker",
-                url: "/icons/hiking.svg",
-                width: "30px",
-                height: "30px"
-            },
             attributes: f.attributes
         });
     });
 
-    startPointsLayer.addMany(graphics);
+    await startPointsLayer.applyEdits({
+        addFeatures: graphics
+    });
 }
 
 function updateMapCursor(x, y) {
@@ -321,3 +367,22 @@ export function zoomToGraphics(graphics) {
         view.goTo(graphics);
     }
 }
+
+export function onExtentChange(callback) {
+    reactiveUtils.watch(() => view.stationary, async (stationary) => {
+        if (stationary && view.extent) {
+            const query = startPointsLayer.createQuery();
+            query.geometry = view.extent;
+            query.returnGeometry = false;
+
+            try {
+                const results = await startPointsLayer.queryFeatures(query);
+                const visibleIds = results.features.map(f => f.attributes.OBJECTID);
+                callback(visibleIds);
+            } catch (error) {
+                console.error("Error querying visible features:", error);
+            }
+        }
+    });
+}
+
