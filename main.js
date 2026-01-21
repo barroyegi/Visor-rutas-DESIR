@@ -20,7 +20,16 @@ async function init() {
 
     // 3. Fetch and Render Start Points on Map
     const startPoints = await fetchStartPoints();
+
     renderStartPoints(startPoints);
+    startPoints.featureReduction = {
+        type: "cluster",
+        clusterRadius: 5000,
+        clusterRadiusUnits: "meters"
+    };
+    console.log("Start point definidos")
+
+
 
     // 4. Render Table
     renderTable(routes, "routes-list");
