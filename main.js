@@ -1,5 +1,5 @@
 import './style.css';
-import { initializeMap, renderStartPoints, zoomToGraphics } from './src/map.js';
+import { initializeMap, renderStartPoints, zoomToGraphics, onExtentChange } from './src/map.js';
 import { fetchRoutesList, fetchStartPoints } from './src/data.js';
 import { renderTable, initFilters, renderRouteDetails } from './src/ui.js';
 import { initLanguageSwitcher } from './src/i18n.js';
@@ -22,21 +22,23 @@ async function init() {
     const startPoints = await fetchStartPoints();
 
     renderStartPoints(startPoints);
-    startPoints.featureReduction = {
-        type: "cluster",
-        clusterRadius: 5000,
-        clusterRadiusUnits: "meters"
-    };
     console.log("Start point definidos")
 
+    let filteredRoutes = routes;
+    let visibleIds = new Set(routes.map(r => r.OBJECTID));
 
+    const updateDisplay = () => {
+        const finalRoutes = filteredRoutes.filter(r => visibleIds.has(r.OBJECTID));
+        renderTable(finalRoutes, "routes-list");
+    };
 
     // 4. Render Table
-    renderTable(routes, "routes-list");
+    updateDisplay();
 
     // 5. Initialize Filters
-    initFilters(routes, (filteredRoutes) => {
-        renderTable(filteredRoutes, "routes-list");
+    initFilters(routes, (newFilteredRoutes) => {
+        filteredRoutes = newFilteredRoutes;
+        updateDisplay();
 
         // Filter map points
         const filteredIds = new Set(filteredRoutes.map(r => r.OBJECTID));
@@ -44,6 +46,12 @@ async function init() {
 
         renderStartPoints(filteredStartPoints);
         zoomToGraphics(filteredStartPoints);
+    });
+
+    // 6. Listen for Map Extent Changes
+    onExtentChange((newVisibleIds) => {
+        visibleIds = new Set(newVisibleIds);
+        updateDisplay();
     });
 
     // 6. Listen for route selection (from Map or Table)
