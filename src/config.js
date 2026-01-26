@@ -4,10 +4,10 @@
 export const config = {
     // URL of the Feature Layer containing the hiking routes (Polylines)
     // This layer must contain fields: Name, Distance, ElevationGain, Difficulty, Duration
-    routesLayerUrl: "https://services5.arcgis.com/FZTIUdZkataugPvd/arcgis/rest/services/DESIR_Senderos_Nafarmendi/FeatureServer/0",
+    routesLayerUrl: "https://services5.arcgis.com/FZTIUdZkataugPvd/arcgis/rest/services/Senderos_Nafarmendi/FeatureServer/0",
 
     // Capa de puntos. En este caso es el mismo, y se generan los puntos con el punto inicial de cada ruta 
-    startPointsLayerUrl: "https://services5.arcgis.com/FZTIUdZkataugPvd/arcgis/rest/services/DESIR_Senderos_Nafarmendi/FeatureServer/0",
+    startPointsLayerUrl: "https://services5.arcgis.com/FZTIUdZkataugPvd/arcgis/rest/services/Senderos_Nafarmendi/FeatureServer/0",
 
     // API Key for ArcGIS (Caduca diciembre 2026)
     apiKey: "AAPTxy8BH1VEsoebNVZXo8HurHGgNl8nviSaJX7VdixHvIh2A3CkX5h3TXOcFHYUrh94cgnUzthWA6sHK3U3s79_0ZbPgcwGwmvp3awa53UgDsVm0Wop4owpK5Lnz_u5GAHKz7l2A2NQ25WaDLwbBL761TOsogRpJxYoffOYMuBl2o4oS5NkrTjMLyu_YTpUat_hsfbKNOkErubB3qFtme-8WTvpjGzYPOPGrQI-tF-5Too.AT1_OdijBCA8",
@@ -20,6 +20,8 @@ export const config = {
         difficulty: "mide_difficulty",
         duration: "time_one_way",
         desnivel_pos: "pos_elev",
+        elevationProfile: "elevation_profile",
+        images: "images",
         xStart: "XStart",
         yStart: "YStart",
         // Language-specific field mappings

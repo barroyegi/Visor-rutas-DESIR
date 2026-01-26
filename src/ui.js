@@ -32,7 +32,7 @@ export function renderTable(routes, containerId) {
   container.innerHTML = "";
 
   if (routes.length === 0) {
-    container.innerHTML = `<p>${t("loadingRoutes")}</p>`; // Or a "no results" message if we had one
+    container.innerHTML = `<p>${t("loadingRoutes")}</p>`;
     return;
   }
 
@@ -41,9 +41,7 @@ export function renderTable(routes, containerId) {
 
   // Header
   const thead = document.createElement("thead");
-  thead.innerHTML = `
-
-  `;
+  thead.innerHTML = ``;
   table.appendChild(thead);
 
   // Body
@@ -52,7 +50,7 @@ export function renderTable(routes, containerId) {
     const tr = document.createElement("tr");
 
     const dist = route[config.fields.distance];
-    const distRedondeada = dist.toFixed(2);
+    const distRedondeada = dist ? dist.toFixed(2) : "N/A";
 
     tr.innerHTML = `
     <td colspan="4" class="route-card-cell">
@@ -90,100 +88,8 @@ export function renderTable(routes, containerId) {
     tbody.appendChild(tr);
   });
 
-
   table.appendChild(tbody);
   container.appendChild(table);
-
-  // Update header if it exists in the container (it's outside renderTable usually, but wait, renderTable clears container)
-  // Actually, looking at index.html, the header "Listado de Rutas" is OUTSIDE the container "routes-list".
-  // So renderTable only renders the content.
-  // BUT, in src/ui.js lines 66-69 (original), it seemed to be rendering the whole list container?
-  // No, wait. In index.html:
-  // <div class="list-container">
-  //   <h3>Listado de Rutas</h3>
-  //   <div id="routes-list">Cargando rutas...</div>
-  // </div>
-  // renderTable targets "routes-list".
-  // So I don't need to update the header inside renderTable.
-  // I only need to update the "No results" message if any.
-
-  // Wait, I see I tried to replace lines 66-69 in ui.js before.
-  // Let's check ui.js again.
-  // Lines 66-69 are inside the loop? No.
-  // Ah, I see. In ui.js, renderTable appends to container.
-  // The container IS "routes-list".
-  // So the header "Listado de Rutas" is static in index.html.
-  // So I don't need to change it in ui.js.
-  // I only need to change the "loading" or "no results" message.
-  // I already changed the "no results" message in step 46 (line 10).
-
-  // So what about "Detalle de Ruta"?
-  // In index.html:
-  // <div class="details-container">
-  //   <h3>Detalle de Ruta</h3>
-  //   <div id="route-details">Selecciona una ruta para ver detalles.</div>
-  // </div>
-  // In ui.js, renderRouteDetails updates "route-details".
-  // So again, the header is static in index.html.
-  // But wait, renderRouteDetails (lines 215+) overwrites contentDiv.
-  // contentDiv is "route-details".
-  // Inside "route-details", there is:
-  // <div class="details-header">...</div>
-  // <p>...</p>
-  // So the "Detalle de Ruta" header is OUTSIDE "route-details".
-  // So I don't need to change it in ui.js.
-
-  // However, I DO need to change the labels INSIDE renderRouteDetails.
-  // I already did that in step 46 (lines 213+).
-
-  // So... it seems I might be done with ui.js?
-  // Let's check if I missed anything.
-  // Step 46 failed chunks 3 and 4.
-  // Chunk 3 was:
-  // <div class="list-container">
-  //   <h3 data-i18n="routesList">${t("routesList")}</h3>
-  //   <div id="routes-list">${t("loadingRoutes")}</div>
-  // </div>
-  // This chunk was trying to replace something that looked like it was in ui.js, but it's actually in index.html structure?
-  // No, I was trying to replace lines 68-69 of ui.js?
-  // Let's look at ui.js again (Step 57).
-  // Lines 66-69 are:
-  //   });
-  // 
-  // 
-  //   table.appendChild(tbody);
-  //   container.appendChild(table);
-  // }
-
-  // So my previous attempt to replace "Listado de Rutas" in ui.js was misguided because that text is NOT in ui.js (except maybe in comments or if I misread).
-  // Ah, I see. I was looking at `view_file` output of `index.html` and confusing it with `ui.js`?
-  // Or maybe I thought `renderTable` rendered the header too.
-  // `renderTable` takes `containerId`. In `main.js`, it's called with "routes-list".
-  // In `index.html`, "routes-list" is inside "list-container" which has the header.
-  // So `ui.js` does NOT render the "Listado de Rutas" header.
-  // So I don't need to change it in `ui.js`.
-
-  // What about "Detalle de Ruta"?
-  // Same thing. "route-details" is the container. The header is outside.
-  // So I don't need to change it in `ui.js`.
-
-  // So `ui.js` changes are actually mostly done?
-  // I changed the "no results" message (line 10).
-  // I changed the card details (lines 41-43).
-  // I changed the route details content (lines 220-226).
-
-  // Wait, did I change the "Select a route" message?
-  // In `ui.js` line 201 (original), there is no "Select a route" message being rendered.
-  // It's in `index.html` initially: `<div id="route-details">Selecciona una ruta para ver detalles.</div>`
-  // But `renderRouteDetails` overwrites it.
-  // If `attributes` is null, it just hides the container.
-  // So I don't need to render "Select a route" in `ui.js`.
-
-  // So `ui.js` seems fine.
-  // I just need to make sure `index.html` is fully updated.
-
-  // So I will proceed with `index.html` updates only.
-
 }
 
 export function initFilters(routes, onFilterChange) {
@@ -328,6 +234,9 @@ export function renderRouteDetails(attributes) {
   overlay.classList.add("active");
   sidebar.classList.add("details-open");
 
+  const imagesField = attributes[config.fields.images] || "";
+  const imageUrls = imagesField.split('|').map(s => s.trim()).filter(s => s.length > 0);
+
   contentDiv.innerHTML = `
     <div class="details-header">
       <h3>${attributes[config.fields.name]}</h3>
@@ -341,12 +250,31 @@ export function renderRouteDetails(attributes) {
     <h4>${t("description")}</h4>
     <p>${attributes[config.fields.description[getCurrentLang()]] || attributes[config.fields.description.es] || "No description available"}</p>
     
-    <h4>${t("photos")}</h4>
-    <div style="display: flex; gap: 10px; overflow-x: auto;">
-      <div style="min-width: 100px; height: 100px; background-color: #eee; display: flex; align-items: center; justify-content: center;">Foto 1</div>
-      <div style="min-width: 100px; height: 100px; background-color: #eee; display: flex; align-items: center; justify-content: center;">Foto 2</div>
-    </div>
+    ${imageUrls.length > 0 ? `
+      <h4>${t("photos")}</h4>
+      <div class="photos-grid">
+        ${imageUrls.map((url, index) => `
+          <img src="${url}" 
+               class="photo-thumb loading" 
+               data-index="${index}" 
+               alt="Foto ${index + 1}" 
+               loading="lazy"
+               onload="this.classList.remove('loading'); this.classList.add('loaded');">
+        `).join('')}
+      </div>
+    ` : ""}
   `;
+
+  // Add event listeners to thumbnails
+  if (imageUrls.length > 0) {
+    const thumbs = contentDiv.querySelectorAll(".photo-thumb");
+    thumbs.forEach(thumb => {
+      thumb.addEventListener("click", () => {
+        const index = parseInt(thumb.getAttribute("data-index"));
+        openPhotoModal(imageUrls, index);
+      });
+    });
+  }
 
   // Add event listener to close button
   document.getElementById("close-details-btn").addEventListener("click", () => {
@@ -368,4 +296,69 @@ export function closeRouteDetails() {
 
   // Also clear map selection/elevation profile if needed
   document.dispatchEvent(new CustomEvent("clearSelection"));
+}
+
+// --- Photo Modal Logic ---
+let currentImages = [];
+let currentImageIndex = 0;
+
+function openPhotoModal(images, index) {
+  currentImages = images;
+  currentImageIndex = index;
+
+  const modal = document.getElementById("photo-modal");
+  const modalImg = document.getElementById("modal-image");
+  const caption = document.getElementById("modal-caption");
+
+  modal.style.display = "block";
+  updateModalImage();
+
+  // Close modal events
+  const closeBtn = modal.querySelector(".modal-close");
+  closeBtn.onclick = closePhotoModal;
+  modal.onclick = (e) => {
+    if (e.target === modal) closePhotoModal();
+  };
+
+  // Navigation events
+  modal.querySelector(".modal-prev").onclick = (e) => {
+    e.stopPropagation();
+    showPrevPhoto();
+  };
+  modal.querySelector(".modal-next").onclick = (e) => {
+    e.stopPropagation();
+    showNextPhoto();
+  };
+
+  // Keyboard navigation
+  document.onkeydown = (e) => {
+    if (modal.style.display === "block") {
+      if (e.key === "ArrowLeft") showPrevPhoto();
+      if (e.key === "ArrowRight") showNextPhoto();
+      if (e.key === "Escape") closePhotoModal();
+    }
+  };
+}
+
+function updateModalImage() {
+  const modalImg = document.getElementById("modal-image");
+  const caption = document.getElementById("modal-caption");
+
+  modalImg.src = currentImages[currentImageIndex];
+  caption.innerHTML = `${currentImageIndex + 1} / ${currentImages.length}`;
+}
+
+function showNextPhoto() {
+  currentImageIndex = (currentImageIndex + 1) % currentImages.length;
+  updateModalImage();
+}
+
+function showPrevPhoto() {
+  currentImageIndex = (currentImageIndex - 1 + currentImages.length) % currentImages.length;
+  updateModalImage();
+}
+
+function closePhotoModal() {
+  document.getElementById("photo-modal").style.display = "none";
+  document.onkeydown = null;
 }
