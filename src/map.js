@@ -23,13 +23,13 @@ let currentRouteSamples = null;
 export async function initializeMap(containerId) {
     map = new Map({
         basemap: "topo-vector",
-        ground: "world-elevation" // Enable world elevation service
+        ground: "world-elevation"
     });
 
     view = new MapView({
         container: containerId,
         map: map,
-        center: [-1.6, 42.8], // Navarra aproximada
+        center: [-1.6, 42.65], // Navarra aproximada
         zoom: 9
     });
 
@@ -133,7 +133,7 @@ export async function initializeMap(containerId) {
             clusterRadius: "100px",
             clusterMinSize: "24px",
             clusterMaxSize: "60px",
-            maxScale: 50000,
+            maxScale: 100000,
             labelingInfo: [{
                 deconflictionStrategy: "none",
                 labelExpressionInfo: {
@@ -317,47 +317,61 @@ export async function selectRoute(objectId) {
         container.classList.add("active");
 
         try {
-            const elevationResult = await map.ground.queryElevation(feature.geometry);
+            let samples = [];
+            const profileJson = feature.attributes[config.fields.elevationProfile];
 
-            const paths = elevationResult.geometry.paths[0];
+            if (profileJson) {
+                console.log("Using pre-calculated elevation profile");
+                const profileData = JSON.parse(profileJson);
+                const paths = feature.geometry.paths[0];
 
-            // Calculate geodesic distances properly
-            const samples = [];
-            let cumulativeDistance = 0; // in meters
-
-            for (let i = 0; i < paths.length; i++) {
-                const point = paths[i];
-
-                if (i > 0) {
-                    // Create a segment from previous point to current point
-                    const segment = {
-                        type: "polyline",
-                        paths: [[paths[i - 1], point]],
-                        spatialReference: elevationResult.geometry.spatialReference
-                    };
-                    // Calculate geodesic length in meters
-                    const segmentLength = geometryEngine.geodesicLength(segment, "meters");
-                    cumulativeDistance += segmentLength;
+                // Map pre-calculated [dist, elev] to geometry points
+                // We assume the profile data matches the geometry vertices 1:1
+                for (let i = 0; i < paths.length && i < profileData.length; i++) {
+                    samples.push({
+                        x: paths[i][0],
+                        y: paths[i][1],
+                        distance: profileData[i][0],
+                        elevation: profileData[i][1]
+                    });
                 }
+            }
 
-                samples.push({
-                    x: point[0],
-                    y: point[1],
-                    elevation: point[2],
-                    distance: cumulativeDistance / 1000 // Convert to km
-                });
+            if (samples.length === 0) {
+                console.log("Generating elevation profile on the fly...");
+                const elevationResult = await map.ground.queryElevation(feature.geometry);
+                const paths = elevationResult.geometry.paths[0];
+
+                let cumulativeDistance = 0; // in meters
+                for (let i = 0; i < paths.length; i++) {
+                    const point = paths[i];
+                    if (i > 0) {
+                        const segment = {
+                            type: "polyline",
+                            paths: [[paths[i - 1], point]],
+                            spatialReference: elevationResult.geometry.spatialReference
+                        };
+                        const segmentLength = geometryEngine.geodesicLength(segment, "meters");
+                        cumulativeDistance += segmentLength;
+                    }
+
+                    samples.push({
+                        x: point[0],
+                        y: point[1],
+                        elevation: point[2],
+                        distance: cumulativeDistance / 1000 // Convert to km
+                    });
+                }
             }
 
             currentRouteSamples = samples;
-
             const distances = samples.map(s => s.distance);
             const elevations = samples.map(s => s.elevation);
-
 
             updateChartData(distances, elevations);
 
         } catch (error) {
-            console.error("!!! Error querying elevation !!!", error);
+            console.error("!!! Error processing elevation data !!!", error);
         }
     }
 }
