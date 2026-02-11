@@ -10,6 +10,7 @@ import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import { config } from "./config.js";
 import { fetchRouteGeometry } from "./data.js";
 import { initChart, updateChartData, highlightChartPoint, clearChart } from "./chart.js";
+import { prefetchImage } from "./ui.js";
 
 let view;
 let map;
@@ -83,6 +84,13 @@ export async function initializeMap(containerId) {
         if (graphic) {
             view.container.style.cursor = "pointer";
             highlightPoint(graphic.attributes.OBJECTID);
+
+            // Pre-fetch image when hovering map point
+            const imagesField = graphic.attributes[config.fields.images];
+            if (imagesField) {
+                const firstUrl = imagesField.split('|')[0]?.trim();
+                if (firstUrl) prefetchImage(firstUrl);
+            }
         } else {
             view.container.style.cursor = "default";
             removeHighlight();
