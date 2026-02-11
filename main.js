@@ -25,32 +25,76 @@ async function init() {
     console.log("Start point definidos")
 
     let filteredRoutes = routes;
-    let visibleIds = new Set(routes.map(r => r.OBJECTID));
+    let visibleIds = new Set(routes.map(r => String(r.OBJECTID)));
+    let isInitialLoad = true;
+    let isFiltering = false;
 
     const updateDisplay = () => {
-        const finalRoutes = filteredRoutes.filter(r => visibleIds.has(r.OBJECTID));
-        renderTable(finalRoutes, "routes-list");
+        const finalRoutes = filteredRoutes.filter(r => {
+            const hasMatch = visibleIds.has(String(r.OBJECTID));
+            return hasMatch;
+        });
+
+        console.log(`[UpdateDisplay] Filtered routes: ${filteredRoutes.length}, Visible map IDs: ${visibleIds.size}, Intersection: ${finalRoutes.length}`);
+
+        if (finalRoutes.length === 0 && filteredRoutes.length > 0) {
+            console.warn(`[UpdateDisplay] Intersection empty! Showing all filtered routes as fallback.`);
+            // Fallback: if extent sync is failing for some reason, show all filtered routes
+            // but log the details for debugging
+            if (visibleIds.size > 0) {
+                const sampleFilteredId = filteredRoutes[0].OBJECTID;
+                const sampleVisibleId = Array.from(visibleIds)[0];
+                console.warn(`Sample filtered ID: ${sampleFilteredId} (type: ${typeof sampleFilteredId})
+                    Sample visible ID: ${sampleVisibleId} (type: ${typeof sampleVisibleId})`);
+            }
+            renderTable(filteredRoutes, "routes-list", isInitialLoad);
+        } else {
+            renderTable(finalRoutes, "routes-list", isInitialLoad);
+        }
+        isInitialLoad = false;
     };
 
     // 4. Render Table
     updateDisplay();
 
     // 5. Initialize Filters
-    initFilters(routes, (newFilteredRoutes) => {
+    initFilters(routes, async (newFilteredRoutes) => {
+        console.log("Filter applied, new count:", newFilteredRoutes.length);
+        isFiltering = true;
         filteredRoutes = newFilteredRoutes;
-        updateDisplay();
 
         // Filter map points
-        const filteredIds = new Set(filteredRoutes.map(r => r.OBJECTID));
-        const filteredStartPoints = startPoints.filter(sp => filteredIds.has(sp.attributes.OBJECTID));
+        const filteredIds = new Set(filteredRoutes.map(r => String(r.OBJECTID)));
+        const filteredStartPoints = startPoints.filter(sp => filteredIds.has(String(sp.attributes.OBJECTID)));
 
-        renderStartPoints(filteredStartPoints);
-        zoomToGraphics(filteredStartPoints);
+        console.log("Updating map points...");
+        await renderStartPoints(filteredStartPoints);
+
+        // Update visibleIds to match filtered set BEFORE display update
+        visibleIds = filteredIds;
+        updateDisplay();
+
+        console.log("Zooming to filtered points...");
+        if (filteredStartPoints.length > 0) {
+            await zoomToGraphics(filteredStartPoints);
+            // Wait a bit after zoom before allowing extent changes to take over
+            setTimeout(() => { isFiltering = false; }, 1000);
+            updateDisplay();
+        } else {
+            isFiltering = false;
+            updateDisplay();
+        }
+        console.log("Filter application complete.");
     });
 
     // 6. Listen for Map Extent Changes
     onExtentChange((newVisibleIds) => {
-        visibleIds = new Set(newVisibleIds);
+        if (isFiltering) {
+            console.log("Extent changed but ignoring because filter is being applied.");
+            return;
+        }
+        console.log("Extent changed, visible points:", newVisibleIds.length);
+        visibleIds = new Set(newVisibleIds.map(id => String(id)));
         updateDisplay();
     });
 

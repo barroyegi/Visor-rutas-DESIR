@@ -27,12 +27,17 @@ function formatDuration(value) {
   return `${hours}:${minutes.toString().padStart(2, '0')} h`;
 }
 
-export function renderTable(routes, containerId) {
+export function renderTable(routes, containerId, isLoading = false) {
   const container = document.getElementById(containerId);
   container.innerHTML = "";
 
-  if (routes.length === 0) {
+  if (isLoading) {
     container.innerHTML = `<p>${t("loadingRoutes")}</p>`;
+    return;
+  }
+
+  if (routes.length === 0) {
+    container.innerHTML = `<p>${t("noRoutesFound")}</p>`;
     return;
   }
 
