@@ -1,6 +1,6 @@
 """
 Script to populate elevation_profile field for a local Feature Class.
-Requires: ArcGIS Pro with arcpy
+Requires: ArcGIS Pro with arcpy and 3D Analyst extension
 
 Usage:
 1. Download your feature layer as a Feature Class to a local geodatabase
@@ -24,9 +24,13 @@ PROFILE_FIELD = "elevation_profile"
 # Optional: Path to DEM raster if geometry doesn't have Z values
 DEM_RASTER = None  # e.g., r"C:\path\to\dem.tif" or None if not needed
 
+# Fallback surface for Interpolate Shape (Local DEM or Esri World Elevation Service)
+# Esri Service URL: https://elevation.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer
+FALLBACK_SURFACE = r"https://elevation.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer"
+
 def calculate_geodesic_distance(lat1, lon1, lat2, lon2):
-    """Calculates geodesic distance in meters using Haversine formula."""
-    R = 6371000  # Earth radius in meters
+    """Calcula la distancia geodesica en metros usando la formula Haversine."""
+    R = 6371000  # Radio de la tierra
     phi1 = math.radians(lat1)
     phi2 = math.radians(lat2)
     delta_phi = math.radians(lat2 - lat1)
@@ -39,62 +43,155 @@ def calculate_geodesic_distance(lat1, lon1, lat2, lon2):
 
     return R * c
 
-def get_elevation_profile(geometry, dem_raster=None):
+def is_profile_valid(profile_data):
+    """
+    Checks if the elevation profile has meaningful variation.
+    Returns False if profile is empty, all elevations are the same, 
+    or variation is below threshold.
+    """
+    if not profile_data or len(profile_data) < 2:
+        return False
+        
+    elevations = [p[1] for p in profile_data]
+    min_elev = min(elevations)
+    max_elev = max(elevations)
+    
+    # Threshold for variation (meters)
+    # If the difference between max and min is less than 0.5m, it's likely a flat/invalid profile
+    if (max_elev - min_elev) < 0.5:
+        return False
+        
+    return True
+
+def extract_from_geometry(geometry):
+    """Helper to extract [dist, elev] points from geometry."""
+    profile_data = []
+    points = []
+    
+    # Get all points from the polyline
+    for part in geometry:
+        for point in part:
+            if point:
+                points.append(point)
+    
+    if not points:
+        return None
+        
+    cumulative_dist = 0  # meters
+    for i, point in enumerate(points):
+        if i > 0:
+            prev = points[i-1]
+            # Calculate distance
+            dist_seg = calculate_geodesic_distance(prev.Y, prev.X, point.Y, point.X)
+            cumulative_dist += dist_seg
+        
+        # Get elevation (Z value)
+        elev = point.Z if point.Z is not None else 0
+        
+        # Store as [distance_km, elevation_m]
+        profile_data.append([round(cumulative_dist / 1000.0, 3), round(elev, 1)])
+        
+    return profile_data
+
+def get_elevation_profile(geometry, dem_raster=None, fallback_surface=None):
     """
     Extract elevation profile from polyline geometry.
-    If geometry has Z values, uses them.
-    If not and dem_raster is provided, samples from DEM.
+    Tries Method A (Geometry Z) first.
+    If Method A is invalid and fallback_surface is provided:
+        - Tries Method B (InterpolateShape) if 3D Analyst license is available.
+        - Tries Method C (Manual Sampling) if no license.
     """
-    profile_data = []
-    
     try:
-        # Check if geometry has Z values
-        has_z = geometry.isMultipart == False and geometry.hasCurves == False
+        # Method A: Direct from Geometry
+        profile_data = extract_from_geometry(geometry)
         
-        # Get all points from the polyline
-        points = []
-        for part in geometry:
-            for point in part:
-                if point:
-                    points.append(point)
-        
-        if len(points) == 0:
-            return None
-        
-        # If no Z values and DEM provided, sample from DEM
-        if not points[0].Z and dem_raster:
-            print("    Sampling elevations from DEM...")
-            # Create point geometries for sampling
-            point_geoms = [arcpy.PointGeometry(p) for p in points]
+        if is_profile_valid(profile_data):
+            return profile_data, "Geometry"
             
-            # Sample DEM
-            result = arcpy.sa.Sample(dem_raster, point_geoms, "temp_sample")
-            # Process result - this is simplified, actual implementation depends on DEM structure
-            # For now, we'll assume Z values exist
+        # Method B/C: Fallback to Surface
+        if fallback_surface:
+            # Check for 3D Analyst license
+            has_3d = arcpy.CheckExtension("3D") == "Available"
             
-        # Calculate profile
-        cumulative_dist = 0  # meters
-        
-        for i, point in enumerate(points):
-            if i > 0:
-                prev = points[i-1]
-                # Calculate distance
-                dist_seg = calculate_geodesic_distance(prev.Y, prev.X, point.Y, point.X)
-                cumulative_dist += dist_seg
+            if has_3d:
+                # Method B: InterpolateShape (Fast, requires license)
+                print(f"    Interpolating from surface (3D Analyst): {fallback_surface}...")
+                try:
+                    arcpy.CheckOutExtension("3D")
+                    temp_fc = r"memory\temp_3d_line"
+                    if arcpy.Exists(temp_fc):
+                        arcpy.management.Delete(temp_fc)
+                        
+                    arcpy.ddd.InterpolateShape(fallback_surface, geometry, temp_fc)
+                    
+                    with arcpy.da.SearchCursor(temp_fc, ["SHAPE@"]) as scursor:
+                        for row in scursor:
+                            profile_data = extract_from_geometry(row[0])
+                            break
+                    
+                    arcpy.management.Delete(temp_fc)
+                    arcpy.CheckInExtension("3D")
+                    
+                    if is_profile_valid(profile_data):
+                        return profile_data, "Surface (3D Analyst)"
+                except Exception as e:
+                    print(f"    Error during surface interpolation: {e}")
+                    arcpy.CheckInExtension("3D")
             
-            # Get elevation (Z value)
-            elev = point.Z if point.Z else 0
-            
-            # Store as [distance_km, elevation_m]
-            profile_data.append([round(cumulative_dist / 1000.0, 3), round(elev, 1)])
-        
-        return profile_data
+            # Method C: Manual Sampling (Slower, no license required)
+            print(f"    Sampling from surface (Manual): {fallback_surface}...")
+            profile_data = extract_from_surface_no_license(geometry, fallback_surface)
+            if is_profile_valid(profile_data):
+                return profile_data, "Surface (Manual)"
+                
+        return None, None
         
     except Exception as e:
         print(f"    Error extracting profile: {e}")
         import traceback
         traceback.print_exc()
+        return None, None
+
+def extract_from_surface_no_license(geometry, surface_path):
+    """
+    Extracts elevation by sampling the surface at each vertex using GetCellValue.
+    Works without 3D Analyst license. Supports local rasters and WCS.
+    """
+    profile_data = []
+    points = []
+    for part in geometry:
+        for point in part:
+            if point:
+                points.append(point)
+    
+    if not points:
         return None
+        
+    cumulative_dist = 0
+    for i, point in enumerate(points):
+        if i > 0:
+            prev = points[i-1]
+            dist_seg = calculate_geodesic_distance(prev.Y, prev.X, point.Y, point.X)
+            cumulative_dist += dist_seg
+        
+        # Sample elevation from surface
+        try:
+            # GetCellValue returns a Result object; .getOutput(0) is the string value
+            res = arcpy.management.GetCellValue(surface_path, f"{point.X} {point.Y}")
+            val_str = res.getOutput(0)
+            
+            # Handle NoData or non-numeric results
+            if val_str.lower() in ["nodata", "failed", ""]:
+                elev = 0
+            else:
+                # Convert to float, handling potential localized decimal separators
+                elev = float(val_str.replace(',', '.'))
+        except Exception:
+            elev = 0
+            
+        profile_data.append([round(cumulative_dist / 1000.0, 3), round(elev, 1)])
+        
+    return profile_data
 
 def main():
     print("=" * 60)
@@ -124,6 +221,7 @@ def main():
     # Process features
     success_count = 0
     fail_count = 0
+    invalid_count = 0
     
     with arcpy.da.UpdateCursor(FC_PATH, ["OID@", "SHAPE@", PROFILE_FIELD]) as cursor:
         for idx, (oid, geometry, current_profile) in enumerate(cursor, 1):
@@ -136,7 +234,7 @@ def main():
                     continue
                 
                 # Get elevation profile
-                profile_data = get_elevation_profile(geometry, DEM_RASTER)
+                profile_data, method = get_elevation_profile(geometry, DEM_RASTER, FALLBACK_SURFACE)
                 
                 if profile_data:
                     # Convert to JSON
@@ -145,11 +243,12 @@ def main():
                     # Update the row
                     cursor.updateRow([oid, geometry, profile_json])
                     
-                    print(f"  ✓ Profile updated: {len(profile_data)} points")
+                    print(f"  ✓ Profile updated ({method}): {len(profile_data)} points")
                     success_count += 1
                 else:
-                    print("  ✗ Failed to generate profile")
-                    fail_count += 1
+                    # If get_elevation_profile returned None, it might be horizontal or failed
+                    print("  ✗ Profile skipped (invalid or failed)")
+                    invalid_count += 1
                     
             except Exception as e:
                 print(f"  ERROR: {e}")
@@ -161,7 +260,8 @@ def main():
     print("\n" + "=" * 60)
     print("\nSummary:")
     print(f"  Successfully updated: {success_count}")
-    print(f"  Failed: {fail_count}")
+    print(f"  Skipped (Horizontal/Invalid): {invalid_count}")
+    print(f"  Failed (Errors): {fail_count}")
     print(f"  Total: {count}")
     print("\n" + "=" * 60)
     print("Done!")

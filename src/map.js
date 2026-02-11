@@ -196,14 +196,7 @@ export function highlightPoint(objectId) {
 
     removeHighlight();
 
-    const graphic = startPointsLayer.graphics.find(g => g.attributes.OBJECTID === objectId);
-    if (graphic) {
-        highlightedGraphic = graphic;
-        const symbol = graphic.symbol.clone();
-        symbol.width = "40px";
-        symbol.height = "40px";
-        graphic.symbol = symbol;
-    }
+
 }
 
 export function removeHighlight() {
@@ -388,6 +381,8 @@ export function onExtentChange(callback) {
             const query = startPointsLayer.createQuery();
             query.geometry = view.extent;
             query.returnGeometry = false;
+            query.outFields = ["*"];
+            query.where = "1=1";
 
             try {
                 const results = await startPointsLayer.queryFeatures(query);
