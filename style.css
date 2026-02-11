@@ -537,3 +537,75 @@ header h1 {
     color: #ccc;
     font-size: 18px;
 }
+
+/* Responsividad Móvil */
+@media (max-width: 768px) {
+    .main-container {
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+        order: 3;
+        border-right: none;
+        border-top: 1px solid #ddd;
+    }
+
+    #viewDiv {
+        width: 100%;
+        height: 400px;
+        /* Altura fija para el mapa en móvil */
+        order: 1;
+        flex: none;
+    }
+
+    #chart-container {
+        position: relative;
+        width: 100%;
+        height: 180px;
+        order: 2;
+        border-right: none;
+    }
+
+    .sidebar-content {
+        height: auto;
+        max-height: none;
+    }
+
+    .details-container {
+        position: relative;
+        height: auto;
+        min-height: 200px;
+        z-index: 100;
+        padding: 1rem;
+        border-top: 1px solid #eee;
+    }
+
+    .sidebar.details-open .sidebar-content {
+        display: none;
+    }
+
+    .sidebar.details-open .details-container {
+        display: block;
+    }
+
+    .filters {
+        flex-wrap: wrap;
+    }
+
+    .filter-dropdown {
+        flex: 1;
+        min-width: 120px;
+    }
+
+    .filter-dropdown-btn {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    header h1 {
+        font-size: 1.2rem;
+    }
+}

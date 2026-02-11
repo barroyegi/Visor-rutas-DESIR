@@ -27,6 +27,21 @@ function formatDuration(value) {
   return `${hours}:${minutes.toString().padStart(2, '0')} h`;
 }
 
+// Map to keep track of pre-fetched images to avoid redundant loads
+const prefetchedImages = new Set();
+
+/**
+ * Pre-fetches an image by creating an Image object in memory.
+ */
+export function prefetchImage(url) {
+  if (!url || prefetchedImages.has(url)) return;
+
+  const img = new Image();
+  img.src = url;
+  prefetchedImages.add(url);
+  console.log(`[Prefetch] Started: ${url}`);
+}
+
 export function renderTable(routes, containerId, isLoading = false) {
   const container = document.getElementById(containerId);
   container.innerHTML = "";
@@ -84,6 +99,13 @@ export function renderTable(routes, containerId, isLoading = false) {
 
     card.addEventListener("mouseenter", () => {
       highlightPoint(route.OBJECTID);
+
+      // Pre-fetch the first image of the route on hover
+      const imagesField = route[config.fields.images];
+      if (imagesField) {
+        const firstUrl = imagesField.split('|')[0]?.trim();
+        if (firstUrl) prefetchImage(firstUrl);
+      }
     });
 
     card.addEventListener("mouseleave", () => {
@@ -263,7 +285,8 @@ export function renderRouteDetails(attributes) {
                class="photo-thumb loading" 
                data-index="${index}" 
                alt="Foto ${index + 1}" 
-               loading="lazy"
+               ${index < 3 ? 'fetchpriority="high"' : ''}
+               decoding="async"
                onload="this.classList.remove('loading'); this.classList.add('loaded');">
         `).join('')}
       </div>
