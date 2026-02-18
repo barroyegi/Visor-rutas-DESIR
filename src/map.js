@@ -2,6 +2,7 @@ import Map from "@arcgis/core/Map.js";
 import MapView from "@arcgis/core/views/MapView.js";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer.js";
 import FeatureLayer from "@arcgis/core/layers/FeatureLayer.js";
+import FeatureFilter from "@arcgis/core/layers/support/FeatureFilter.js";
 import Graphic from "@arcgis/core/Graphic.js";
 import * as geometryEngine from "@arcgis/core/geometry/geometryEngine.js";
 import BasemapGallery from "@arcgis/core/widgets/BasemapGallery.js";
@@ -15,6 +16,8 @@ import { prefetchImage } from "./ui.js";
 let view;
 let map;
 let startPointsLayer;
+let startPointsLayerView;
+let startPointsLayerViewReady; // Promise that resolves when layerView is ready
 let routeLayer;
 let cursorLayer; // Layer for the map cursor
 
@@ -136,33 +139,38 @@ export async function initializeMap(containerId) {
                 height: "30px"
             }
         },
-        featureReduction: {
-            type: "cluster",
-            clusterRadius: "100px",
-            clusterMinSize: "24px",
-            clusterMaxSize: "60px",
-            maxScale: 100000,
-            labelingInfo: [{
-                deconflictionStrategy: "none",
-                labelExpressionInfo: {
-                    expression: "$feature.cluster_count"
-                },
-                symbol: {
-                    type: "text",
-                    color: "black",
-                    haloColor: 'white',
-                    haloSize: '1.5px',
-                    font: {
-                        weight: "bold",
-                        size: "12px",
-                    }
-                },
-                labelPlacement: "center-center"
-            }]
-        }
+        // featureReduction: {
+        //     type: "cluster",
+        //     clusterRadius: "100px",
+        //     clusterMinSize: "24px",
+        //     clusterMaxSize: "60px",
+        //     maxScale: 100000,
+        //     labelingInfo: [{
+        //         deconflictionStrategy: "none",
+        //         labelExpressionInfo: {
+        //             expression: "$feature.cluster_count"
+        //         },
+        //         symbol: {
+        //             type: "text",
+        //             color: "black",
+        //             haloColor: 'white',
+        //             haloSize: '1.5px',
+        //             font: {
+        //                 weight: "bold",
+        //                 size: "12px",
+        //             }
+        //         },
+        //         labelPlacement: "center-center"
+        //     }]
+        // }
     });
     map.add(startPointsLayer);
 
+    // Obtain the LayerView once the layer is ready in the view
+    startPointsLayerViewReady = view.whenLayerView(startPointsLayer).then(lv => {
+        startPointsLayerView = lv;
+        return lv;
+    });
     // Layer for Selected Route
     routeLayer = new GraphicsLayer();
     map.add(routeLayer);
@@ -220,11 +228,6 @@ export function removeHighlight() {
 export async function renderStartPoints(features) {
     // For FeatureLayer, we use applyEdits to update features
     const allGraphics = await startPointsLayer.queryFeatures();
-    if (allGraphics.features.length > 0) {
-        await startPointsLayer.applyEdits({
-            deleteFeatures: allGraphics.features
-        });
-    }
 
     const graphics = features.map(f => {
         let pointGeometry = f.geometry;
@@ -239,7 +242,10 @@ export async function renderStartPoints(features) {
         });
     });
 
+    // Atomic operation: delete existing and add new in a single applyEdits call
+    // This avoids the intermediate empty state that triggers onExtentChange with 0 features
     await startPointsLayer.applyEdits({
+        deleteFeatures: allGraphics.features.length > 0 ? allGraphics.features : [],
         addFeatures: graphics
     });
 }
@@ -380,6 +386,22 @@ export async function selectRoute(objectId) {
 export function zoomToGraphics(graphics) {
     if (graphics && graphics.length > 0) {
         view.goTo(graphics);
+    }
+}
+
+export async function filterStartPoints(objectIds) {
+    // Wait for layerView to be ready before applying filter
+    if (!startPointsLayerView) {
+        await startPointsLayerViewReady;
+    }
+
+    if (objectIds === null) {
+        // Remove filter: show all features
+        startPointsLayerView.filter = null;
+    } else {
+        startPointsLayerView.filter = new FeatureFilter({
+            objectIds: objectIds
+        });
     }
 }
 
