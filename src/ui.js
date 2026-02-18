@@ -136,6 +136,7 @@ export function initFilters(routes, onFilterChange) {
   // Apply filter buttons
   const applyDistanceFilter = document.getElementById("apply-distance-filter");
   const applyMoreFilters = document.getElementById("apply-more-filters");
+  const searchInput = document.getElementById("search-input");
 
   const minGap = 2; // Minimum gap between sliders
 
@@ -222,8 +223,22 @@ export function initFilters(routes, onFilterChange) {
       return dist >= minDistance && dist <= maxDistance;
     });
 
+    // Filtro de búsqueda por texto (nombre)
+    const query = searchInput.value.toLowerCase().trim();
+    if (query) {
+      filtered = filtered.filter(r => {
+        const name = (r[config.fields.name] || "").toLowerCase();
+        return name.includes(query);
+      });
+    }
+
     onFilterChange(filtered);
   };
+
+  // Escuchar eventos de teclado en el buscador
+  searchInput.addEventListener("input", () => {
+    applyFilters();
+  });
 
   // Aplica el filtro de distancia cuando se hace clic en el botón
   applyDistanceFilter.addEventListener("click", () => {
