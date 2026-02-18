@@ -306,10 +306,48 @@ export function renderRouteDetails(attributes) {
       <h3>${attributes[config.fields.name]}</h3>
       <button class="close-details-btn" id="close-details-btn">&times;</button>
     </div>
-    <p><strong>${t("distance")}:</strong> ${attributes[config.fields.distance]} km</p>
-    <p><strong>${t("elevation")}:</strong> ${attributes[config.fields.elevation]} m</p>
-    <p><strong>${t("difficulty")}:</strong> ${tData("difficulty", attributes[config.fields.difficulty])}</p>
-    <p><strong>${t("duration")}:</strong> ${formatDuration(attributes[config.fields.duration])}</p>
+    
+    <div class="route-stats-grid">
+      <div class="stat-item">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">${t("distance")}</span>
+          <span class="stat-value">${attributes[config.fields.distance]} km</span>
+        </div>
+      </div>
+      
+      <div class="stat-item">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path><path d="M16 8 L20 8 M16 12 L20 12 M16 16 L20 16"></path><path d="M12 16 L12 8"></path><path d="m9 10 3-3 3 3"></path></svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">${t("elevation")}</span>
+          <span class="stat-value">${attributes[config.fields.elevation]} m</span>
+        </div>
+      </div>
+      
+      <div class="stat-item">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">${t("difficulty")}</span>
+          <span class="stat-value">${tData("difficulty", attributes[config.fields.difficulty])}</span>
+        </div>
+      </div>
+      
+      <div class="stat-item">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-label">${t("duration")}</span>
+          <span class="stat-value">${formatDuration(attributes[config.fields.duration])}</span>
+        </div>
+      </div>
+    </div>
     
     <h4>${t("description")}</h4>
     <p>${attributes[config.fields.description[getCurrentLang()]] || attributes[config.fields.description.es] || "No description available"}</p>
