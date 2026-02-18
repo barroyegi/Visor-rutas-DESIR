@@ -122,7 +122,15 @@ export function initChart(containerId, onHover) {
                 label: 'Altitud',
                 data: [],
                 borderColor: 'rgb(75, 150, 220)',
-                backgroundColor: 'rgba(75, 150, 220, 0.3)',
+                backgroundColor: (context) => {
+                    const chart = context.chart;
+                    const { ctx, chartArea } = chart;
+                    if (!chartArea) return null;
+                    const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                    gradient.addColorStop(0, '#8FB27D');
+                    gradient.addColorStop(1, '#EBBD68');
+                    return gradient;
+                },
                 fill: true,
                 tension: 0.1,
                 borderWidth: 2,
@@ -201,22 +209,8 @@ export function updateChartData(distances, elevations) {
     const maxDistance = Math.max(...distances);
     chartInstance.options.scales.x.max = maxDistance;
 
-    // Create gradient for area fill
-    const ctx = chartInstance.ctx;
-    const chartArea = chartInstance.chartArea;
+    chartInstance.options.scales.x.max = maxDistance;
 
-    if (chartArea) {
-        const minElev = Math.min(...elevations);
-        const maxElev = Math.max(...elevations);
-
-        const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-
-
-        gradient.addColorStop(0, '#8FB27D');
-        gradient.addColorStop(1, '#EBBD68');
-
-        chartInstance.data.datasets[0].backgroundColor = gradient;
-    }
 
     chartInstance.update();
 }
