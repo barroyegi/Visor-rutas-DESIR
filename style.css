@@ -162,6 +162,28 @@ header h1 {
     border-color: #999;
 }
 
+.reset-btn {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #df4a16;
+    transition: all 0.2s;
+    height: 38px;
+    width: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.reset-btn:hover {
+    background-color: #fff5f2;
+    border-color: #df4a16;
+}
+
 .filter-dropdown-btn.active {
     background-color: #f0f0f0;
     border-color: #666;

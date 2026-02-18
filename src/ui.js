@@ -137,6 +137,7 @@ export function initFilters(routes, onFilterChange) {
   const applyDistanceFilter = document.getElementById("apply-distance-filter");
   const applyMoreFilters = document.getElementById("apply-more-filters");
   const searchInput = document.getElementById("search-input");
+  const resetFiltersBtn = document.getElementById("reset-filters-btn");
 
   const minGap = 2; // Minimum gap between sliders
 
@@ -254,6 +255,27 @@ export function initFilters(routes, onFilterChange) {
     // Close dropdown
     moreFiltersDropdownBtn.classList.remove("active");
     moreFiltersDropdownContent.classList.remove("active");
+  });
+
+  // Botón de reset de todos los filtros
+  resetFiltersBtn.addEventListener("click", () => {
+    // 1. Limpiar búsqueda por texto
+    searchInput.value = "";
+
+    // 2. Reiniciar dificultad
+    difficultyFilter.value = "All";
+
+    // 3. Reiniciar sliders de distancia
+    sliderOne.value = 0;
+    sliderTwo.value = 100;
+
+    // 4. Actualizar labels y track visual
+    sliderMinLabel.textContent = "0 km";
+    sliderMaxLabel.textContent = "+ 100 km";
+    fillSlider();
+
+    // 5. Aplicar cambios
+    applyFilters();
   });
 }
 
