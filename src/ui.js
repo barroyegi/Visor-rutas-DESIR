@@ -140,7 +140,7 @@ export function initFilters(routes, onFilterChange) {
   const minGap = 2; // Minimum gap between sliders
 
   function fillSlider() {
-    const range = 50; // Max value defined in HTML
+    const range = 100; // Max value defined in HTML
     const percent1 = (sliderOne.value / range) * 100;
     const percent2 = (sliderTwo.value / range) * 100;
     sliderTrack.style.background = `linear-gradient(to right, #ddd ${percent1}%, #ff8c00 ${percent1}%, #ff8c00 ${percent2}%, #ddd ${percent2}%)`;
@@ -158,8 +158,8 @@ export function initFilters(routes, onFilterChange) {
     if (parseInt(sliderTwo.value) - parseInt(sliderOne.value) <= minGap) {
       sliderTwo.value = parseInt(sliderOne.value) + minGap;
     }
-    if (parseFloat(sliderTwo.value) >= 50) {
-      sliderMaxLabel.textContent = "+ 50 km";
+    if (parseFloat(sliderTwo.value) >= 100) {
+      sliderMaxLabel.textContent = "+ 100 km";
     } else {
       sliderMaxLabel.textContent = `${sliderTwo.value} km`;
     }
@@ -207,13 +207,13 @@ export function initFilters(routes, onFilterChange) {
   const applyFilters = () => {
     let filtered = routes;
 
-    // Difficulty filter
+    // Filtro de dificultad
     const difficulty = difficultyFilter.value;
     if (difficulty !== "All") {
       filtered = filtered.filter(r => r[config.fields.difficulty] === difficulty);
     }
 
-    // Distance filter (min and max)
+    // Filtro de distancia (min y max)
     const minDistance = parseFloat(sliderOne.value);
     const maxDistance = parseFloat(sliderTwo.value);
 
@@ -225,7 +225,7 @@ export function initFilters(routes, onFilterChange) {
     onFilterChange(filtered);
   };
 
-  // Apply distance filter when button is clicked
+  // Aplica el filtro de distancia cuando se hace clic en el botón
   applyDistanceFilter.addEventListener("click", () => {
     applyFilters();
     // Close dropdown
@@ -233,7 +233,7 @@ export function initFilters(routes, onFilterChange) {
     distanceDropdownContent.classList.remove("active");
   });
 
-  // Apply more filters when button is clicked
+  // Aplica el filtro de más filtros cuando se hace clic en el botón
   applyMoreFilters.addEventListener("click", () => {
     applyFilters();
     // Close dropdown

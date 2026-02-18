@@ -1,8 +1,9 @@
 import './style.css';
-import { initializeMap, renderStartPoints, zoomToGraphics, onExtentChange } from './src/map.js';
+import { initializeMap, renderStartPoints, filterStartPoints, zoomToGraphics, onExtentChange } from './src/map.js';
 import { fetchRoutesList, fetchStartPoints } from './src/data.js';
 import { renderTable, initFilters, renderRouteDetails } from './src/ui.js';
 import { initLanguageSwitcher } from './src/i18n.js';
+import { config } from './src/config.js';
 
 async function init() {
     console.log("Initializing application...");
@@ -21,7 +22,7 @@ async function init() {
     // 3. Fetch and Render Start Points on Map
     const startPoints = await fetchStartPoints();
 
-    renderStartPoints(startPoints);
+    await renderStartPoints(startPoints);
     console.log("Start point definidos")
 
     let filteredRoutes = routes;
@@ -54,8 +55,28 @@ async function init() {
         isInitialLoad = false;
     };
 
-    // 4. Render Table
-    updateDisplay();
+    // 4. Aplicar filtro inicial de distancia (0-100km) y poblar el listado
+    // Lo hacemos con un pequeño retardo para asegurar que la vista del mapa esté lista
+    setTimeout(async () => {
+        const initialFilteredRoutes = routes.filter(r => {
+            const dist = r[config.fields.distance];
+            return dist !== null && dist !== undefined && dist >= 0 && dist <= 100;
+        });
+
+        isFiltering = true;
+        filteredRoutes = initialFilteredRoutes;
+        visibleIds = new Set(initialFilteredRoutes.map(r => String(r.OBJECTID)));
+
+        // Aplicar filtro de la SDK (FeatureFilter)
+        await filterStartPoints(initialFilteredRoutes.map(r => r.OBJECTID));
+
+        isInitialLoad = false; // Quitar estado de carga para el renderizado real
+        updateDisplay();
+
+        // Liberar el bloqueo de filtrado tras un momento para permitir sincronización de extensión del mapa
+        setTimeout(() => { isFiltering = false; }, 1000);
+    }, 500);
+
 
     // 5. Initialize Filters
     initFilters(routes, async (newFilteredRoutes) => {
@@ -63,21 +84,18 @@ async function init() {
         isFiltering = true;
         filteredRoutes = newFilteredRoutes;
 
-        // Filter map points
-        const filteredIds = new Set(filteredRoutes.map(r => String(r.OBJECTID)));
-        const filteredStartPoints = startPoints.filter(sp => filteredIds.has(String(sp.attributes.OBJECTID)));
+        // Filter map points using FeatureFilter (SDK approach - no add/delete)
+        const filteredIds = newFilteredRoutes.map(r => r.OBJECTID);
+        filterStartPoints(filteredIds.length > 0 ? filteredIds : []);
 
-        console.log("Updating map points...");
-        await renderStartPoints(filteredStartPoints);
-
-        // Update visibleIds to match filtered set BEFORE display update
-        visibleIds = filteredIds;
+        // Update visibleIds to match filtered set
+        visibleIds = new Set(filteredIds.map(id => String(id)));
         updateDisplay();
 
         console.log("Zooming to filtered points...");
+        const filteredStartPoints = startPoints.filter(sp => visibleIds.has(String(sp.attributes.OBJECTID)));
         if (filteredStartPoints.length > 0) {
             await zoomToGraphics(filteredStartPoints);
-            // Wait a bit after zoom before allowing extent changes to take over
             setTimeout(() => { isFiltering = false; }, 1000);
             updateDisplay();
         } else {
@@ -116,3 +134,4 @@ async function init() {
 }
 
 init();
+
