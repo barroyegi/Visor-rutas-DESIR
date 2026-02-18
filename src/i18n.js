@@ -23,7 +23,8 @@ export const translations = {
             photos: "Fotos",
             all: "Todas",
             sliderMax: "+ 100 km",
-            searchPlaceholder: "Buscar por nombre..."
+            searchPlaceholder: "Buscar por nombre...",
+            resetFilters: "Reiniciar"
         },
         data: {
             difficulty: {
@@ -51,7 +52,8 @@ export const translations = {
             photos: "Photos",
             all: "Toutes",
             sliderMax: "+ 100 km",
-            searchPlaceholder: "Rechercher par nom..."
+            searchPlaceholder: "Rechercher par nom...",
+            resetFilters: "Réinitialiser"
         },
         data: {
             difficulty: {
@@ -79,7 +81,8 @@ export const translations = {
             photos: "Argazkiak",
             all: "Guztiak",
             sliderMax: "+ 100 km",
-            searchPlaceholder: "Bilatu izenaren arabera..."
+            searchPlaceholder: "Bilatu izenaren arabera...",
+            resetFilters: "Garbitu"
         },
         data: {
             difficulty: {
@@ -122,6 +125,13 @@ export function setLanguage(lang) {
         const key = el.getAttribute("data-i18n-placeholder");
         if (translations[lang].ui[key]) {
             el.placeholder = translations[lang].ui[key];
+        }
+    });
+
+    document.querySelectorAll("[data-i18n-title]").forEach(el => {
+        const key = el.getAttribute("data-i18n-title");
+        if (translations[lang].ui[key]) {
+            el.title = translations[lang].ui[key];
         }
     });
 
