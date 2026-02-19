@@ -123,11 +123,18 @@ async function init() {
         renderRouteDetails(currentRoute);
     });
 
+    document.addEventListener("clearSelection", () => {
+        currentRoute = null;
+    });
+
     // 7. Listen for language change
     document.addEventListener("languageChanged", () => {
         console.log("Language changed, re-rendering...");
-        renderTable(routes, "routes-list");
-        if (currentRoute) {
+        updateDisplay();
+
+        // Only re-render details if the details container is currently active
+        const detailsContainer = document.querySelector(".details-container");
+        if (currentRoute && detailsContainer && detailsContainer.classList.contains("active")) {
             renderRouteDetails(currentRoute);
         }
     });
