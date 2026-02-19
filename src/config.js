@@ -24,6 +24,7 @@ export const config = {
         images: "images",
         xStart: "XStart",
         yStart: "YStart",
+        downloadUrl: "URL_Descarga",
         // Language-specific field mappings
         description: {
             es: "description",
