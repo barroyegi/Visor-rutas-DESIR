@@ -25,7 +25,8 @@ export const translations = {
             sliderMax: "+ 100 km",
             searchPlaceholder: "Buscar por nombre...",
             resetFilters: "Reiniciar",
-            download: "Descargar GPX"
+            download: "Descargar GPX",
+            viewInfoSheet: "Ver ficha del sendero"
         },
         data: {
             difficulty: {
@@ -55,7 +56,8 @@ export const translations = {
             sliderMax: "+ 100 km",
             searchPlaceholder: "Rechercher par nom...",
             resetFilters: "Réinitialiser",
-            download: "Télécharger GPX"
+            download: "Télécharger GPX",
+            viewInfoSheet: "Voir la fiche du sentier"
         },
         data: {
             difficulty: {
@@ -85,7 +87,8 @@ export const translations = {
             sliderMax: "+ 100 km",
             searchPlaceholder: "Bilatu izenaren arabera...",
             resetFilters: "Garbitu",
-            download: "GPX Deskargatu"
+            download: "GPX Deskargatu",
+            viewInfoSheet: "Ikusi bidearen fitxa"
         },
         data: {
             difficulty: {

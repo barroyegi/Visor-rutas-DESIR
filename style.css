@@ -454,6 +454,32 @@ header h1 {
     transform: translateY(2px);
 }
 
+.info-sheet-container {
+    margin: 1rem 0 1.5rem 0;
+}
+
+.info-sheet-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background-color: white;
+    color: var(--secondary-color);
+    border: 2px solid var(--secondary-color);
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.info-sheet-btn:hover {
+    background-color: var(--secondary-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
 .details-header {
     display: flex;
     justify-content: space-between;
