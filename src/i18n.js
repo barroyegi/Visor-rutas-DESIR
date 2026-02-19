@@ -26,7 +26,8 @@ export const translations = {
             searchPlaceholder: "Buscar por nombre...",
             resetFilters: "Reiniciar",
             download: "Descargar GPX",
-            viewInfoSheet: "Ver ficha del sendero"
+            viewInfoSheet: "Ver ficha del sendero",
+            matricula: "Categoría"
         },
         data: {
             difficulty: {
@@ -57,7 +58,8 @@ export const translations = {
             searchPlaceholder: "Rechercher par nom...",
             resetFilters: "Réinitialiser",
             download: "Télécharger GPX",
-            viewInfoSheet: "Voir la fiche du sentier"
+            viewInfoSheet: "Voir la fiche du sentier",
+            matricula: "Catégorie"
         },
         data: {
             difficulty: {
@@ -88,7 +90,8 @@ export const translations = {
             searchPlaceholder: "Bilatu izenaren arabera...",
             resetFilters: "Garbitu",
             download: "GPX Deskargatu",
-            viewInfoSheet: "Ikusi bidearen fitxa"
+            viewInfoSheet: "Ikusi bidearen fitxa",
+            matricula: "Kategoria"
         },
         data: {
             difficulty: {

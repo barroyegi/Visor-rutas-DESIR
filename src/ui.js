@@ -77,6 +77,7 @@ export function renderTable(routes, containerId, isLoading = false) {
       <div class="route-card">
         <div class="route-card-name">
           ${route[config.fields.name] || "N/A"}
+          ${route[config.fields.matricula] === "GR" ? '<div class="gr-symbol" title="Gran Recorrido (GR)"></div>' : ''}
         </div>
 
         <div class="route-card-details">
@@ -137,6 +138,7 @@ export function initFilters(routes, onFilterChange) {
   const applyDistanceFilter = document.getElementById("apply-distance-filter");
   const applyMoreFilters = document.getElementById("apply-more-filters");
   const searchInput = document.getElementById("search-input");
+  const matriculaFilter = document.getElementById("matricula-filter");
   const resetFiltersBtn = document.getElementById("reset-filters-btn");
 
   const minGap = 2; // Minimum gap between sliders
@@ -170,6 +172,15 @@ export function initFilters(routes, onFilterChange) {
 
   // Initial fill
   fillSlider();
+
+  // Populate Matricula Filter dynamically
+  const matriculas = [...new Set(routes.map(r => r[config.fields.matricula]).filter(Boolean))].sort();
+  matriculas.forEach(m => {
+    const option = document.createElement("option");
+    option.value = m;
+    option.textContent = m;
+    matriculaFilter.appendChild(option);
+  });
 
   // Event listeners for sliders
   sliderOne.addEventListener("input", slideOne);
@@ -213,6 +224,12 @@ export function initFilters(routes, onFilterChange) {
     const difficulty = difficultyFilter.value;
     if (difficulty !== "All") {
       filtered = filtered.filter(r => r[config.fields.difficulty] === difficulty);
+    }
+
+    // Filtro de matricula
+    const matricula = matriculaFilter.value;
+    if (matricula !== "All") {
+      filtered = filtered.filter(r => r[config.fields.matricula] === matricula);
     }
 
     // Filtro de distancia (min y max)
@@ -262,8 +279,9 @@ export function initFilters(routes, onFilterChange) {
     // 1. Limpiar búsqueda por texto
     searchInput.value = "";
 
-    // 2. Reiniciar dificultad
+    // 2. Reiniciar dificultad y matricula
     difficultyFilter.value = "All";
+    matriculaFilter.value = "All";
 
     // 3. Reiniciar sliders de distancia
     sliderOne.value = 0;
