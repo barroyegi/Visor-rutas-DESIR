@@ -25,6 +25,7 @@ export const config = {
         xStart: "XStart",
         yStart: "YStart",
         downloadUrl: "URL_Descarga",
+        routeCode: "cod_ruta",
         // Language-specific field mappings
         description: {
             es: "description",
