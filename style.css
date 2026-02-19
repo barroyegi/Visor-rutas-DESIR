@@ -417,9 +417,41 @@ header h1 {
 }
 
 .stat-value {
-    font-size: 14px;
     font-weight: bold;
     color: #333;
+}
+
+.download-container {
+    margin: 1.5rem 0;
+}
+
+.download-route-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background-color: var(--secondary-color);
+    color: white;
+    text-decoration: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.download-route-btn:hover {
+    background-color: #d35400;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.download-route-btn svg {
+    transition: transform 0.3s ease;
+}
+
+.download-route-btn:hover svg {
+    transform: translateY(2px);
 }
 
 .details-header {

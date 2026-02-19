@@ -24,7 +24,8 @@ export const translations = {
             all: "Todas",
             sliderMax: "+ 100 km",
             searchPlaceholder: "Buscar por nombre...",
-            resetFilters: "Reiniciar"
+            resetFilters: "Reiniciar",
+            download: "Descargar GPX"
         },
         data: {
             difficulty: {
@@ -53,7 +54,8 @@ export const translations = {
             all: "Toutes",
             sliderMax: "+ 100 km",
             searchPlaceholder: "Rechercher par nom...",
-            resetFilters: "Réinitialiser"
+            resetFilters: "Réinitialiser",
+            download: "Télécharger GPX"
         },
         data: {
             difficulty: {
@@ -82,7 +84,8 @@ export const translations = {
             all: "Guztiak",
             sliderMax: "+ 100 km",
             searchPlaceholder: "Bilatu izenaren arabera...",
-            resetFilters: "Garbitu"
+            resetFilters: "Garbitu",
+            download: "GPX Deskargatu"
         },
         data: {
             difficulty: {
