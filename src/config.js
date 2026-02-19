@@ -26,6 +26,7 @@ export const config = {
         yStart: "YStart",
         downloadUrl: "URL_Descarga",
         routeCode: "cod_ruta",
+        matricula: "Matricula",
         // Language-specific field mappings
         description: {
             es: "description",
