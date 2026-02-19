@@ -8,6 +8,7 @@ import * as geometryEngine from "@arcgis/core/geometry/geometryEngine.js";
 import BasemapGallery from "@arcgis/core/widgets/BasemapGallery.js";
 import Expand from "@arcgis/core/widgets/Expand.js";
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
+import Search from "@arcgis/core/widgets/Search.js";
 import { config } from "./config.js";
 import { fetchRouteGeometry } from "./data.js";
 import { initChart, updateChartData, highlightChartPoint, clearChart } from "./chart.js";
@@ -67,6 +68,19 @@ export async function initializeMap(containerId) {
     });
 
     view.ui.add(bgExpand, "top-right");
+
+    // Search Widget
+    const searchWidget = new Search({
+        view: view,
+        allPlaceholder: "Buscar lugar...",
+        popupEnabled: false,
+        includeDefaultSources: true
+    });
+
+    view.ui.add(searchWidget, {
+        position: "top-right",
+        index: 0
+    });
 
     // Initialize Chart
     initChart("elevation-chart", (index) => {

@@ -138,6 +138,18 @@ header h1 {
     outline: none;
 }
 
+.esri-search__submit-button {
+    display: none !important;
+}
+
+.esri-search__form {
+    display: block !important;
+}
+
+.esri-search {
+    display: block !important;
+}
+
 .filter-dropdown {
     position: relative;
     display: inline-block;
