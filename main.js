@@ -1,4 +1,3 @@
-import './style.css';
 import { initializeMap, renderStartPoints, filterStartPoints, zoomToGraphics, onExtentChange } from './src/map.js';
 import { fetchRoutesList, fetchStartPoints } from './src/data.js';
 import { renderTable, initFilters, renderRouteDetails } from './src/ui.js';
