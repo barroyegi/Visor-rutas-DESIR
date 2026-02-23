@@ -9,6 +9,8 @@ import BasemapGallery from "@arcgis/core/widgets/BasemapGallery.js";
 import Expand from "@arcgis/core/widgets/Expand.js";
 import * as reactiveUtils from "@arcgis/core/core/reactiveUtils.js";
 import Search from "@arcgis/core/widgets/Search.js";
+import WebTileLayer from "@arcgis/core/layers/WebTileLayer.js";
+import Basemap from "@arcgis/core/Basemap.js";
 import { config } from "./config.js";
 import { fetchRouteGeometry } from "./data.js";
 import { initChart, updateChartData, highlightChartPoint, clearChart } from "./chart.js";
@@ -26,8 +28,21 @@ let currentRouteGeometry = null;
 let currentRouteSamples = null;
 
 export async function initializeMap(containerId) {
+    const openTopoLayer = new WebTileLayer({
+        urlTemplate: "https://{subDomain}.tile.opentopomap.org/{level}/{col}/{row}.png",
+        subDomains: ["a", "b", "c"],
+        copyright: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+    });
+
+    const openTopoBasemap = new Basemap({
+        baseLayers: [openTopoLayer],
+        title: "OpenTopoMap",
+        id: "opentopomap",
+        thumbnailUrl: "https://a.tile.opentopomap.org/13/4193/3091.png"
+    });
+
     map = new Map({
-        basemap: "topo-vector",
+        basemap: "hybrid",
         ground: "world-elevation"
     });
 
@@ -47,7 +62,7 @@ export async function initializeMap(containerId) {
                 type: "simple-fill",
                 color: [0, 0, 0, 0], // Transparent fill
                 outline: {
-                    color: [128, 128, 128], // Gray outline
+                    color: [255, 255, 255], // Gray outline
                     width: 2
                 }
             }
@@ -57,9 +72,15 @@ export async function initializeMap(containerId) {
     });
     map.add(navarraLayer);
 
-    // Basemap Gallery
+    // Basemap Gallery with custom source
     const basemapGallery = new BasemapGallery({
-        view: view
+        view: view,
+        source: [
+            Basemap.fromId("topo-vector"),
+            Basemap.fromId("hybrid"),
+            Basemap.fromId("osm"),
+            openTopoBasemap
+        ]
     });
 
     const bgExpand = new Expand({
@@ -68,6 +89,20 @@ export async function initializeMap(containerId) {
     });
 
     view.ui.add(bgExpand, "top-right");
+
+    // Auto-switch basemap based on zoom level
+    reactiveUtils.watch(
+        () => view.zoom,
+        (zoom) => {
+            if (zoom >= 13 && map.basemap.id === "hybrid") {
+                console.log("Auto-switching to OpenTopoMap (Zoom >= 13)");
+                map.basemap = openTopoBasemap;
+            } else if (zoom < 13 && map.basemap.id === "opentopomap") {
+                console.log("Auto-switching to Imagery with Labels (Zoom < 13)");
+                map.basemap = Basemap.fromId("hybrid");
+            }
+        }
+    );
 
     // Search Widget
     const searchWidget = new Search({
