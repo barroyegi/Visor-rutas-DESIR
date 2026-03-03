@@ -95,10 +95,8 @@ export async function initializeMap(containerId) {
         () => view.zoom,
         (zoom) => {
             if (zoom >= 13 && map.basemap.id === "hybrid") {
-                console.log("Auto-switching to OpenTopoMap (Zoom >= 13)");
                 map.basemap = openTopoBasemap;
             } else if (zoom < 13 && map.basemap.id === "opentopomap") {
-                console.log("Auto-switching to Imagery with Labels (Zoom < 13)");
                 map.basemap = Basemap.fromId("hybrid");
             }
         }
@@ -156,12 +154,10 @@ export async function initializeMap(containerId) {
                 const distanceToLine = geometryEngine.distance(point, nearestPoint.coordinate, "meters");
 
                 if (distanceToLine < 100) {
-                    console.log("Mouse near route! Distance:", distanceToLine.toFixed(1), "m");
                     updateMapCursor(nearestPoint.coordinate.x, nearestPoint.coordinate.y);
 
                     const nearestSample = findNearestSample(nearestPoint.coordinate);
                     if (nearestSample) {
-                        console.log("Highlighting chart at distance:", nearestSample.distance.toFixed(2), "km");
                         highlightChartPoint(nearestSample.distance);
                     }
                 }
@@ -173,10 +169,11 @@ export async function initializeMap(containerId) {
     startPointsLayer = new FeatureLayer({
         source: [], // Initially empty
         geometryType: "point",
-        spatialReference: { wkid: 4326 }, // Web Mercator
-        objectIdField: "OBJECTID",
+        spatialReference: { wkid: 4326 },
+        objectIdField: "_internalId",
         fields: [
-            { name: "OBJECTID", type: "oid" },
+            { name: "_internalId", type: "oid" },
+            { name: "OBJECTID", type: "integer" },
             { name: "name_1", type: "string" }
         ],
         renderer: {
@@ -234,7 +231,6 @@ export async function initializeMap(containerId) {
             const graphic = response.results.filter(r => r.graphic.layer === startPointsLayer)[0]?.graphic;
             if (graphic && !graphic.isAggregate) {
                 const objectId = graphic.attributes.OBJECTID;
-                console.log("Clicked start point:", objectId);
                 selectRoute(objectId);
             }
         }
@@ -374,27 +370,105 @@ export async function selectRoute(objectId) {
 
         try {
             let samples = [];
-            const profileJson = feature.attributes[config.fields.elevationProfile];
+            const polyline = feature.geometry;
 
-            if (profileJson) {
-                console.log("Using pre-calculated elevation profile");
-                const profileData = JSON.parse(profileJson);
-                const paths = feature.geometry.paths[0];
+            if (polyline && polyline.hasZ) {
+                console.log(`[Elevation Profile] Source: Geometry Z/M values for route OID: ${objectId}`);
+                let cumulativeDistance = 0;
+                let lastVertex = null;
 
-                // Map pre-calculated [dist, elev] to geometry points
-                // We assume the profile data matches the geometry vertices 1:1
-                for (let i = 0; i < paths.length && i < profileData.length; i++) {
-                    samples.push({
-                        x: paths[i][0],
-                        y: paths[i][1],
-                        distance: profileData[i][0],
-                        elevation: profileData[i][1]
-                    });
+                for (let p = 0; p < polyline.paths.length; p++) {
+                    const path = polyline.paths[p];
+                    for (let i = 0; i < path.length; i++) {
+                        const vertex = path[i];
+                        const x = vertex[0];
+                        const y = vertex[1];
+                        const z = vertex[2];
+                        const m = (polyline.hasM && vertex.length > 3) ? vertex[3] : null;
+
+                        if (i > 0) {
+                            if (m !== null && m !== undefined && m !== -1) {
+                                // Use M value if available and valid
+                                cumulativeDistance = m;
+                            } else {
+                                // Calculate geodesic distance if M is missing or invalid
+                                const segment = {
+                                    type: "polyline",
+                                    paths: [[path[i - 1], vertex]],
+                                    spatialReference: polyline.spatialReference
+                                };
+                                cumulativeDistance += geometryEngine.geodesicLength(segment, "meters");
+                            }
+                        } else if (p > 0 && lastVertex) {
+                            // Link paths for multipart geometries
+                            const gapSegment = {
+                                type: "polyline",
+                                paths: [[lastVertex, vertex]],
+                                spatialReference: polyline.spatialReference
+                            };
+                            cumulativeDistance += geometryEngine.geodesicLength(gapSegment, "meters");
+                        }
+
+                        samples.push({
+                            x: x,
+                            y: y,
+                            elevation: z,
+                            distance: cumulativeDistance / 1000 // KM
+                        });
+                        lastVertex = vertex;
+                    }
+                }
+            }
+
+            // Fallback to elevation_profile attribute ONLY if geometry didn't provide points
+            if (samples.length === 0) {
+                const profileJson = feature.attributes[config.fields.elevationProfile];
+                if (profileJson) {
+                    console.log(`[Elevation Profile] Source: 'elevation_profile' attribute field (JSON) for route OID: ${objectId}`);
+                    const profileData = JSON.parse(profileJson);
+                    const path = polyline.paths[0];
+
+                    let vertexDistances = [0];
+                    let currentTotal = 0;
+                    for (let i = 1; i < path.length; i++) {
+                        const segment = {
+                            type: "polyline",
+                            paths: [[path[i - 1], path[i]]],
+                            spatialReference: polyline.spatialReference
+                        };
+                        currentTotal += geometryEngine.geodesicLength(segment, "meters");
+                        vertexDistances.push(currentTotal / 1000);
+                    }
+
+                    for (let i = 0; i < profileData.length; i++) {
+                        const profileDist = profileData[i][0];
+                        const elevation = profileData[i][1];
+                        let x = path[0][0];
+                        let y = path[0][1];
+                        let found = false;
+
+                        for (let j = 0; j < vertexDistances.length - 1; j++) {
+                            if (profileDist >= vertexDistances[j] && profileDist <= vertexDistances[j + 1]) {
+                                const ratio = (profileDist - vertexDistances[j]) / (vertexDistances[j + 1] - vertexDistances[j]);
+                                x = path[j][0] + (path[j + 1][0] - path[j][0]) * ratio;
+                                y = path[j][1] + (path[j + 1][1] - path[j][1]) * ratio;
+                                found = true;
+                                break;
+                            }
+                        }
+
+                        if (!found && profileDist > vertexDistances[vertexDistances.length - 1]) {
+                            x = path[path.length - 1][0];
+                            y = path[path.length - 1][1];
+                        }
+
+                        samples.push({ x, y, distance: profileDist, elevation });
+                    }
                 }
             }
 
             if (samples.length === 0) {
-                console.log("Generating elevation profile on the fly...");
+                console.log(`[Elevation Profile] Source: Ground Elevation Query (API) for route OID: ${objectId}`);
                 const elevationResult = await map.ground.queryElevation(feature.geometry);
                 const paths = elevationResult.geometry.paths[0];
 

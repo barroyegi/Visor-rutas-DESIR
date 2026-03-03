@@ -39,6 +39,8 @@ export async function fetchRouteGeometry(objectId) {
     const query = new Query();
     query.objectIds = [objectId];
     query.returnGeometry = true;
+    query.returnZ = true;
+    query.returnM = true;
     query.outFields = ["*"];
 
     try {
