@@ -5,18 +5,18 @@ import { initLanguageSwitcher } from './src/i18n.js';
 import { config } from './src/config.js';
 
 async function init() {
-    console.log("Initializing application...");
+    console.log("Inicializando aplicacion...");
 
     // 1. Initialize Map
     const view = await initializeMap("viewDiv");
-    console.log("Map initialized");
+    console.log("Mapa inicializado");
 
     // Initialize Language Switcher
     initLanguageSwitcher();
 
     // 2. Fetch Data
     const routes = await fetchRoutesList();
-    console.log("Routes fetched:", routes);
+    console.log("Rutas obtenidas:", routes);
 
     // 3. Fetch and Render Start Points on Map
     const startPoints = await fetchStartPoints();
@@ -34,8 +34,6 @@ async function init() {
             const hasMatch = visibleIds.has(String(r.OBJECTID));
             return hasMatch;
         });
-
-        console.log(`[UpdateDisplay] Filtered routes: ${filteredRoutes.length}, Visible map IDs: ${visibleIds.size}, Intersection: ${finalRoutes.length}`);
 
         if (finalRoutes.length === 0 && filteredRoutes.length > 0) {
             console.warn(`[UpdateDisplay] Intersection empty! Showing all filtered routes as fallback.`);
@@ -79,7 +77,6 @@ async function init() {
 
     // 5. Initialize Filters
     initFilters(routes, async (newFilteredRoutes) => {
-        console.log("Filter applied, new count:", newFilteredRoutes.length);
         isFiltering = true;
         filteredRoutes = newFilteredRoutes;
 
@@ -91,7 +88,6 @@ async function init() {
         visibleIds = new Set(filteredIds.map(id => String(id)));
         updateDisplay();
 
-        console.log("Zooming to filtered points...");
         const filteredStartPoints = startPoints.filter(sp => visibleIds.has(String(sp.attributes.OBJECTID)));
         if (filteredStartPoints.length > 0) {
             await zoomToGraphics(filteredStartPoints);
@@ -101,16 +97,13 @@ async function init() {
             isFiltering = false;
             updateDisplay();
         }
-        console.log("Filter application complete.");
     });
 
     // 6. Listen for Map Extent Changes
     onExtentChange((newVisibleIds) => {
         if (isFiltering) {
-            console.log("Extent changed but ignoring because filter is being applied.");
             return;
         }
-        console.log("Extent changed, visible points:", newVisibleIds.length);
         visibleIds = new Set(newVisibleIds.map(id => String(id)));
         updateDisplay();
     });
@@ -128,7 +121,7 @@ async function init() {
 
     // 7. Listen for language change
     document.addEventListener("languageChanged", () => {
-        console.log("Language changed, re-rendering...");
+        console.log("Idioma cambiado, re-renderizando...");
         updateDisplay();
 
         // Only re-render details if the details container is currently active

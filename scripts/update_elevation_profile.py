@@ -7,14 +7,14 @@ from arcgis.geometry import Geometry
 from arcgis.geometry.functions import project
 
 # --- CONFIGURATION ---
-FEATURE_LAYER_URL = "https://services5.arcgis.com/FZTIUdZkataugPvd/arcgis/rest/services/DESIR_Senderos_Nafarmendi/FeatureServer/0"
+FEATURE_LAYER_URL = "https://services5.arcgis.com/FZTIUdZkataugPvd/arcgis/rest/services/Senderos_Nafarmendi_03032026/FeatureServer/1"
 
 # Credentials (if needed for editing)
 USERNAME = "" 
 PASSWORD = ""
 
 # API Token (paste your token here if you have one)
-TOKEN = ""  # Paste your token here
+TOKEN = "***REMOVED-ARCGIS-API-KEY-TRUNCATED***"  # Paste your token here
 
 # Field to store the JSON profile
 PROFILE_FIELD = "elevation_profile"
