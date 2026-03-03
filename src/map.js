@@ -90,17 +90,6 @@ export async function initializeMap(containerId) {
 
     view.ui.add(bgExpand, "top-right");
 
-    // Auto-switch basemap based on zoom level
-    reactiveUtils.watch(
-        () => view.zoom,
-        (zoom) => {
-            if (zoom >= 13 && map.basemap.id === "hybrid") {
-                map.basemap = openTopoBasemap;
-            } else if (zoom < 13 && map.basemap.id === "opentopomap") {
-                map.basemap = Basemap.fromId("hybrid");
-            }
-        }
-    );
 
     // Search Widget
     const searchWidget = new Search({
@@ -173,7 +162,7 @@ export async function initializeMap(containerId) {
         objectIdField: "_internalId",
         fields: [
             { name: "_internalId", type: "oid" },
-            { name: "OBJECTID", type: "integer" },
+            { name: "routeId", type: "integer" },
             { name: "name_1", type: "string" }
         ],
         renderer: {
@@ -230,8 +219,8 @@ export async function initializeMap(containerId) {
         if (response.results.length > 0) {
             const graphic = response.results.filter(r => r.graphic.layer === startPointsLayer)[0]?.graphic;
             if (graphic && !graphic.isAggregate) {
-                const objectId = graphic.attributes.OBJECTID;
-                selectRoute(objectId);
+                const objectId = graphic.attributes.routeId;
+                document.dispatchEvent(new CustomEvent("mapStartPointClicked", { detail: objectId }));
             }
         }
     });
@@ -253,7 +242,7 @@ export async function initializeMap(containerId) {
 let highlightedGraphic = null;
 
 export function highlightPoint(objectId) {
-    if (highlightedGraphic && highlightedGraphic.attributes.OBJECTID === objectId) return;
+    if (highlightedGraphic && highlightedGraphic.attributes.routeId === objectId) return;
 
     removeHighlight();
 
@@ -281,9 +270,12 @@ export async function renderStartPoints(features) {
             pointGeometry = f.geometry.getPoint(0, 0);
         }
 
+        const attributes = { ...f.attributes };
+        attributes.routeId = f.attributes.OBJECTID;
+
         return new Graphic({
             geometry: pointGeometry,
-            attributes: f.attributes
+            attributes: attributes
         });
     });
 
@@ -546,5 +538,170 @@ export function onExtentChange(callback) {
             }
         }
     });
+}
+
+// --- Route Group / Variants ---
+
+/**
+ * Builds elevation samples from a feature using Z/M geometry values.
+ * Falls back to elevation_profile attribute, then to ground query.
+ */
+async function buildSamplesFromFeature(feature) {
+    const samples = [];
+    const polyline = feature.geometry;
+    const objectId = feature.attributes.OBJECTID;
+
+    if (polyline && polyline.hasZ) {
+        console.log(`[Elevation Profile] Source: Geometry Z/M values for route OID: ${objectId}`);
+        let cumulativeDistance = 0;
+        let lastVertex = null;
+        for (let p = 0; p < polyline.paths.length; p++) {
+            const path = polyline.paths[p];
+            for (let i = 0; i < path.length; i++) {
+                const vertex = path[i];
+                const x = vertex[0], y = vertex[1], z = vertex[2];
+                const m = (polyline.hasM && vertex.length > 3) ? vertex[3] : null;
+                if (i > 0) {
+                    if (m !== null && m !== undefined && m !== -1) {
+                        cumulativeDistance = m;
+                    } else {
+                        const seg = { type: "polyline", paths: [[path[i - 1], vertex]], spatialReference: polyline.spatialReference };
+                        cumulativeDistance += geometryEngine.geodesicLength(seg, "meters");
+                    }
+                } else if (p > 0 && lastVertex) {
+                    const gapSeg = { type: "polyline", paths: [[lastVertex, vertex]], spatialReference: polyline.spatialReference };
+                    cumulativeDistance += geometryEngine.geodesicLength(gapSeg, "meters");
+                }
+                samples.push({ x, y, elevation: z, distance: cumulativeDistance / 1000 });
+                lastVertex = vertex;
+            }
+        }
+    }
+
+    if (samples.length === 0) {
+        const profileJson = feature.attributes[config.fields.elevationProfile];
+        if (profileJson) {
+            console.log(`[Elevation Profile] Source: 'elevation_profile' attribute for route OID: ${objectId}`);
+            const profileData = JSON.parse(profileJson);
+            const path = polyline.paths[0];
+            let vertexDistances = [0], currentTotal = 0;
+            for (let i = 1; i < path.length; i++) {
+                const seg = { type: "polyline", paths: [[path[i - 1], path[i]]], spatialReference: polyline.spatialReference };
+                currentTotal += geometryEngine.geodesicLength(seg, "meters");
+                vertexDistances.push(currentTotal / 1000);
+            }
+            for (let i = 0; i < profileData.length; i++) {
+                const profileDist = profileData[i][0], elevation = profileData[i][1];
+                let x = path[0][0], y = path[0][1], found = false;
+                for (let j = 0; j < vertexDistances.length - 1; j++) {
+                    if (profileDist >= vertexDistances[j] && profileDist <= vertexDistances[j + 1]) {
+                        const ratio = (profileDist - vertexDistances[j]) / (vertexDistances[j + 1] - vertexDistances[j]);
+                        x = path[j][0] + (path[j + 1][0] - path[j][0]) * ratio;
+                        y = path[j][1] + (path[j + 1][1] - path[j][1]) * ratio;
+                        found = true; break;
+                    }
+                }
+                if (!found && profileDist > vertexDistances[vertexDistances.length - 1]) {
+                    x = path[path.length - 1][0]; y = path[path.length - 1][1];
+                }
+                samples.push({ x, y, distance: profileDist, elevation });
+            }
+        }
+    }
+
+    if (samples.length === 0) {
+        console.log(`[Elevation Profile] Source: Ground Elevation Query (API) for route OID: ${objectId}`);
+        const elevationResult = await map.ground.queryElevation(feature.geometry);
+        const paths = elevationResult.geometry.paths[0];
+        let cumulativeDistance = 0;
+        for (let i = 0; i < paths.length; i++) {
+            const point = paths[i];
+            if (i > 0) {
+                const seg = { type: "polyline", paths: [[paths[i - 1], point]], spatialReference: elevationResult.geometry.spatialReference };
+                cumulativeDistance += geometryEngine.geodesicLength(seg, "meters");
+            }
+            samples.push({ x: point[0], y: point[1], elevation: point[2], distance: cumulativeDistance / 1000 });
+        }
+    }
+
+    return samples;
+}
+
+// Stores all fetched features for the current group, keyed by OBJECTID
+let currentGroupFeatures = {};
+
+const ACTIVE_SYMBOL = { type: "simple-line", color: [0, 0, 255], width: 3, style: "solid" };
+const DIM_SYMBOL = { type: "simple-line", color: [150, 150, 200], width: 2, style: "solid" };
+
+/**
+ * Loads and displays all route variants in a group.
+ * @param {number} selectedObjectId - The variant to highlight.
+ * @param {Array} allVariantAttributes - Array of route attribute objects for all variants.
+ */
+export async function selectRouteGroup(selectedObjectId, allVariantAttributes) {
+    routeLayer.removeAll();
+    cursorLayer.removeAll();
+    currentGroupFeatures = {};
+
+    const fetched = await Promise.all(allVariantAttributes.map(attr => fetchRouteGeometry(attr.OBJECTID)));
+
+    for (const feature of fetched) {
+        if (!feature) continue;
+        currentGroupFeatures[feature.attributes.OBJECTID] = feature;
+        const isSelected = feature.attributes.OBJECTID === selectedObjectId;
+        routeLayer.add(new Graphic({
+            geometry: feature.geometry,
+            symbol: isSelected ? ACTIVE_SYMBOL : DIM_SYMBOL,
+            attributes: { OBJECTID: feature.attributes.OBJECTID }
+        }));
+    }
+
+    const selectedFeature = currentGroupFeatures[selectedObjectId];
+    if (!selectedFeature) return;
+
+    currentRouteGeometry = selectedFeature.geometry;
+    // Zoom to the combined extent of all variants in the group
+    const allGeometries = Object.values(currentGroupFeatures).map(f => f.geometry);
+    const groupExtent = allGeometries.reduce((acc, geom) => acc ? acc.union(geom.extent) : geom.extent, null);
+    // bottom padding accounts for the 200px elevation chart + 20px margin
+    view.goTo(groupExtent, { padding: { top: 40, left: 40, right: 40, bottom: 220 } });
+    document.getElementById("chart-container").classList.add("active");
+
+    document.dispatchEvent(new CustomEvent("routeGroupSelected", {
+        detail: { selectedAttributes: selectedFeature.attributes, allVariants: allVariantAttributes }
+    }));
+
+    try {
+        const samples = await buildSamplesFromFeature(selectedFeature);
+        currentRouteSamples = samples;
+        updateChartData(samples.map(s => s.distance), samples.map(s => s.elevation));
+    } catch (error) {
+        console.error("!!! Error processing elevation data !!!", error);
+    }
+}
+
+/**
+ * Switches the active variant within the currently loaded group without re-fetching.
+ * @param {number} newObjectId
+ */
+export async function switchVariant(newObjectId) {
+    routeLayer.graphics.forEach(graphic => {
+        const isSelected = graphic.attributes.OBJECTID === newObjectId;
+        graphic.symbol = isSelected ? ACTIVE_SYMBOL : DIM_SYMBOL;
+    });
+
+    const selectedFeature = currentGroupFeatures[newObjectId];
+    if (!selectedFeature) return;
+
+    currentRouteGeometry = selectedFeature.geometry;
+    cursorLayer.removeAll();
+
+    try {
+        const samples = await buildSamplesFromFeature(selectedFeature);
+        currentRouteSamples = samples;
+        updateChartData(samples.map(s => s.distance), samples.map(s => s.elevation));
+    } catch (error) {
+        console.error("!!! Error switching variant !!!", error);
+    }
 }
 
