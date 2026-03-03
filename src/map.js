@@ -122,7 +122,7 @@ export async function initializeMap(containerId) {
 
         if (graphic) {
             view.container.style.cursor = "pointer";
-            highlightPoint(graphic.attributes.OBJECTID);
+            highlightPoint(graphic.attributes.routeId);
 
             // Pre-fetch image when hovering map point
             const imagesField = graphic.attributes[config.fields.images];
@@ -163,7 +163,12 @@ export async function initializeMap(containerId) {
         fields: [
             { name: "_internalId", type: "oid" },
             { name: "routeId", type: "integer" },
-            { name: "name_1", type: "string" }
+            { name: "name_1", type: "string" },
+            { name: "cod_ruta", type: "string" },
+            { name: "images", type: "string" },
+            { name: "Matricula", type: "string" },
+            { name: "longitud_km", type: "double" },
+            { name: "pos_elev", type: "double" }
         ],
         renderer: {
             type: "simple",
@@ -260,6 +265,9 @@ export function removeHighlight() {
 }
 
 export async function renderStartPoints(features) {
+    if (features && features.length > 0) {
+        console.log("[Render] First feature attributes sample:", features[0].attributes);
+    }
     // For FeatureLayer, we use applyEdits to update features
     const allGraphics = await startPointsLayer.queryFeatures();
 
@@ -271,7 +279,14 @@ export async function renderStartPoints(features) {
         }
 
         const attributes = { ...f.attributes };
-        attributes.routeId = f.attributes.OBJECTID;
+
+        // Robust ID lookup: try different standard field names
+        const rawId = f.attributes.OBJECTID ?? f.attributes.objectid ?? f.attributes.FID ?? f.attributes.id;
+        attributes.routeId = (rawId !== undefined && rawId !== null) ? Number(rawId) : NaN;
+
+        if (isNaN(attributes.routeId)) {
+            console.error("[Render] Feature has no identifiable ID field:", f.attributes);
+        }
 
         return new Graphic({
             geometry: pointGeometry,
@@ -531,7 +546,7 @@ export function onExtentChange(callback) {
 
             try {
                 const results = await startPointsLayer.queryFeatures(query);
-                const visibleIds = results.features.map(f => f.attributes.OBJECTID);
+                const visibleIds = results.features.map(f => f.attributes.routeId);
                 callback(visibleIds);
             } catch (error) {
                 console.error("Error querying visible features:", error);
