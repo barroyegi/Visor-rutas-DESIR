@@ -71,7 +71,7 @@ export async function fetchStartPoints() {
         const query = new Query();
         query.where = "1=1";
         query.returnGeometry = true; // We need geometry for fallback
-        query.outFields = [config.fields.name, "OBJECTID", config.fields.xStart, config.fields.yStart];
+        query.outFields = [config.fields.name, "OBJECTID", config.fields.xStart, config.fields.yStart, "Variante"];
 
         const results = await layer.queryFeatures(query);
         if (results.features.length > 0) {
