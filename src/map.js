@@ -204,20 +204,55 @@ export async function initializeMap(containerId) {
         //     }]
         // }
     });
-    map.add(startPointsLayer);
 
-    // Obtain the LayerView once the layer is ready in the view
-    startPointsLayerViewReady = view.whenLayerView(startPointsLayer).then(lv => {
-        startPointsLayerView = lv;
-        return lv;
+    // Track LayerView for startPointsLayer automatically using reactiveUtils
+    reactiveUtils.on(() => view, "layerview-create", (event) => {
+        if (event.layer === startPointsLayer) {
+            startPointsLayerView = event.layerView;
+            console.log("[Map] startPointsLayerView updated");
+        }
     });
+
     // Layer for Selected Route
     routeLayer = new GraphicsLayer();
-    map.add(routeLayer);
-
     // Layer for Cursor
     cursorLayer = new GraphicsLayer();
-    map.add(cursorLayer);
+
+    // Function to ensure our custom layers are above labels by moving them to basemap.referenceLayers
+    const ensureCustomLayersOnTop = async () => {
+        try {
+            // Wait for basemap to be resolved and loaded
+            if (typeof map.basemap === "string") {
+                console.log(`[TopLayers] Waiting for basemap string "${map.basemap}" to resolve...`);
+                await reactiveUtils.whenOnce(() => map.basemap && typeof map.basemap !== "string");
+            }
+            if (!map.basemap.loaded) {
+                await map.basemap.load();
+            }
+
+            if (map.basemap.referenceLayers) {
+                console.log(`[TopLayers] Moving to referenceLayers of ${map.basemap.title}`);
+                // Move them: Collection.add automatically removes them from any previous parent/collection
+                map.basemap.referenceLayers.addMany([routeLayer, cursorLayer, startPointsLayer]);
+            } else {
+                console.warn("[TopLayers] referenceLayers not found, adding to map top");
+                map.removeMany([routeLayer, cursorLayer, startPointsLayer]);
+                map.addMany([routeLayer, cursorLayer, startPointsLayer]);
+            }
+        } catch (e) {
+            console.error("[TopLayers] Error:", e);
+        }
+    };
+
+    // Watch for basemap changes (from gallery) to maintain topmost position
+    reactiveUtils.watch(() => map.basemap, (basemap) => {
+        if (basemap) {
+            ensureCustomLayersOnTop();
+        }
+    });
+
+    // Initial call
+    ensureCustomLayersOnTop();
 
     view.on("click", async (event) => {
         const response = await view.hitTest(event);
@@ -522,7 +557,7 @@ export function zoomToGraphics(graphics) {
 export async function filterStartPoints(objectIds) {
     // Wait for layerView to be ready before applying filter
     if (!startPointsLayerView) {
-        await startPointsLayerViewReady;
+        await reactiveUtils.whenOnce(() => !!startPointsLayerView);
     }
 
     if (objectIds === null) {
