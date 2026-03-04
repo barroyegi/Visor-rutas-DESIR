@@ -168,7 +168,8 @@ export async function initializeMap(containerId) {
             { name: "images", type: "string" },
             { name: "Matricula", type: "string" },
             { name: "longitud_km", type: "double" },
-            { name: "pos_elev", type: "double" }
+            { name: "pos_elev", type: "double" },
+            { name: "Variante", type: "string" }
         ],
         renderer: {
             type: "simple",

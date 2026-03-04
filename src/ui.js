@@ -338,7 +338,7 @@ export function renderRouteDetails(attributes, allVariants = []) {
       <div class="variant-pills">
         ${allVariants.map((v, i) => `
           <button class="variant-pill${v.OBJECTID === selectedOid ? ' active' : ''}" data-oid="${v.OBJECTID}">
-            ${v[config.fields.name] || `Variante ${i + 1}`}
+            ${v[config.fields.variantName] || v[config.fields.name] || `Variante ${i + 1}`}
           </button>
         `).join('')}
       </div>
