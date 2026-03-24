@@ -75,8 +75,8 @@ async function init() {
     // Lo hacemos con un pequeño retardo para asegurar que la vista del mapa esté lista
     setTimeout(async () => {
         const initialFilteredRoutes = routes.filter(r => {
-            const dist = r[config.fields.distance];
-            return dist !== null && dist !== undefined && dist >= 0 && dist <= 100;
+            const distKm = r[config.fields.distance];
+            return distKm !== null && distKm !== undefined && distKm >= 0 && distKm <= 100;
         });
 
         isFiltering = true;
@@ -151,8 +151,10 @@ async function init() {
     });
 
     // 7. Listen for route group selection (fires after selectRouteGroup completes)
+    let currentVariants = [];
     document.addEventListener("routeGroupSelected", (e) => {
         currentRoute = e.detail.selectedAttributes;
+        currentVariants = e.detail.allVariants;
         renderRouteDetails(e.detail.selectedAttributes, e.detail.allVariants);
     });
 
@@ -167,8 +169,8 @@ async function init() {
 
         // Only re-render details if the details container is currently active
         const detailsContainer = document.querySelector(".details-container");
-        if (currentRoute && detailsContainer && detailsContainer.classList.contains("active")) {
-            renderRouteDetails(currentRoute);
+        if (detailsContainer && detailsContainer.classList.contains("active")) {
+            renderRouteDetails(currentRoute, currentVariants);
         }
     });
 }
