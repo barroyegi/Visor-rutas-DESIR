@@ -1,5 +1,5 @@
 import { config } from "./config.js";
-import { selectRoute, selectRouteGroup, highlightPoint, removeHighlight, switchVariant } from "./map.js";
+import { selectRoute, selectRouteGroup, highlightPoint, removeHighlight, switchVariant, clearVariantSelection } from "./map.js";
 import { t, tData, getCurrentLang } from "./i18n.js";
 
 function formatDuration(value) {
@@ -388,6 +388,9 @@ export function renderRouteDetails(attributes, allVariants = []) {
     : resolveVariantField(attributes, config.fields.downloadUrl);
 
   const selectedOid = isGeneralView ? null : attributes.OBJECTID;
+  const routeCode = isGeneralView
+    ? headerAttributes[config.fields.routeCode]
+    : resolveVariantField(attributes, config.fields.routeCode);
 
   contentDiv.innerHTML = `
     <div class="details-header">
@@ -412,49 +415,62 @@ export function renderRouteDetails(attributes, allVariants = []) {
     </div>
     ` : ''}
     
-    ${!isGeneralView ? `
-    <div class="route-stats-grid">
+    ${!isGeneralView ? (() => {
+      const distVal = formatDistance(attributes[config.fields.distance]);
+      const elevVal = attributes[config.fields.elevation];
+      const diffVal = tData("difficulty", attributes[config.fields.difficulty]);
+      const durVal = formatDuration(attributes[config.fields.duration]);
+
+      const isValid = (v) => v !== null && v !== undefined && String(v).trim() !== "" && String(v).trim() !== "N/A";
+
+      const statDist = isValid(distVal) ? `
       <div class="stat-item">
         <div class="stat-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
         </div>
         <div class="stat-info">
           <span class="stat-label">${t("distance")}</span>
-          <span class="stat-value">${formatDistance(attributes[config.fields.distance])} km</span>
+          <span class="stat-value">${distVal} km</span>
         </div>
-      </div>
-      
+      </div>` : '';
+
+      const statElev = isValid(elevVal) ? `
       <div class="stat-item">
         <div class="stat-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path><path d="M16 8 L20 8 M16 12 L20 12 M16 16 L20 16"></path><path d="M12 16 L12 8"></path><path d="m9 10 3-3 3 3"></path></svg>
         </div>
         <div class="stat-info">
           <span class="stat-label">${t("elevation")}</span>
-          <span class="stat-value">${attributes[config.fields.elevation]} m</span>
+          <span class="stat-value">${elevVal} m</span>
         </div>
-      </div>
-      
+      </div>` : '';
+
+      const statDiff = isValid(diffVal) ? `
       <div class="stat-item">
         <div class="stat-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
         </div>
         <div class="stat-info">
           <span class="stat-label">${t("difficulty")}</span>
-          <span class="stat-value">${tData("difficulty", attributes[config.fields.difficulty])}</span>
+          <span class="stat-value">${diffVal}</span>
         </div>
-      </div>
-      
+      </div>` : '';
+
+      const statDur = isValid(durVal) ? `
       <div class="stat-item">
         <div class="stat-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
         </div>
         <div class="stat-info">
           <span class="stat-label">${t("duration")}</span>
-          <span class="stat-value">${formatDuration(attributes[config.fields.duration])}</span>
+          <span class="stat-value">${durVal}</span>
         </div>
-      </div>
-    </div>
-    ` : ''}
+      </div>` : '';
+
+      const anyStatVisible = isValid(distVal) || isValid(elevVal) || isValid(diffVal) || isValid(durVal);
+      return anyStatVisible ? `<div class="route-stats-grid">${statDist}${statElev}${statDiff}${statDur}</div>` : '';
+    })() : ''}
+
     
     ${downloadUrl ? `
       <div class="download-container">
@@ -520,6 +536,12 @@ export function renderRouteDetails(attributes, allVariants = []) {
     contentDiv.querySelectorAll(".variant-pill").forEach(pill => {
       pill.addEventListener("click", () => {
         const newOid = parseInt(pill.getAttribute("data-oid"), 10);
+        // If the clicked pill is already active, deselect and return to general view
+        if (pill.classList.contains("active")) {
+          renderRouteDetails(null, allVariants);
+          clearVariantSelection();
+          return;
+        }
         const newSelected = allVariants.find(v => v.OBJECTID === newOid);
         if (newSelected) {
           // Re-render details with the selected variant (will use _variante fields)

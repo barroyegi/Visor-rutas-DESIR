@@ -794,3 +794,17 @@ export async function switchVariant(newObjectId) {
     }
 }
 
+/**
+ * Clears the active variant selection, leaving all routes in the group dimmed.
+ * Used to return to the general group view.
+ */
+export function clearVariantSelection() {
+    routeLayer.graphics.forEach(graphic => {
+        graphic.symbol = DIM_SYMBOL;
+    });
+    currentRouteGeometry = null;
+    currentRouteSamples = null;
+    cursorLayer.removeAll();
+    document.getElementById("chart-container").classList.remove("active");
+}
+
