@@ -71,11 +71,14 @@ export async function fetchStartPoints() {
         const query = new Query();
         query.where = "1=1";
         query.returnGeometry = true; // We need geometry for fallback
-        query.outFields = [config.fields.name, "OBJECTID", config.fields.xStart, config.fields.yStart, "Variante"];
+        query.outFields = [config.fields.name, "OBJECTID", config.fields.xStart, config.fields.yStart, "Variante", "longitud_km"];
 
         const results = await layer.queryFeatures(query);
         if (results.features.length > 0) {
-            console.log("[Data] fetchStartPoints first feature sample:", results.features[0].attributes);
+            const firstAttr = results.features[0].attributes;
+            console.log("[Data] fetchStartPoints first feature attributes:", firstAttr);
+            console.log("[Data] All available keys:", Object.keys(firstAttr));
+            console.log("[Data] longitud_km value:", firstAttr["longitud_km"]);
         }
 
         return results.features.map(f => {

@@ -104,9 +104,9 @@ export async function initializeMap(containerId) {
         index: 0
     });
 
-    // Initialize Chart
+    // Inicializar el gráfico
     initChart("elevation-chart", (index) => {
-        // Chart -> Map Sync
+        // Sincronización del gráfico con el mapa
         if (currentRouteSamples && currentRouteSamples[index]) {
             const sample = currentRouteSamples[index];
             updateMapCursor(sample.x, sample.y);
@@ -168,7 +168,6 @@ export async function initializeMap(containerId) {
             { name: "images", type: "string" },
             { name: "Matricula", type: "string" },
             { name: "longitud_km", type: "double" },
-            { name: "pos_elev", type: "double" },
             { name: "Variante", type: "string" }
         ],
         renderer: {
@@ -686,7 +685,7 @@ const DIM_SYMBOL = { type: "simple-line", color: [150, 150, 200], width: 2, styl
 
 /**
  * Loads and displays all route variants in a group.
- * @param {number} selectedObjectId - The variant to highlight.
+ * @param {number} selectedObjectId - The variant to highlight. If null and there are multiple variants, none is selected.
  * @param {Array} allVariantAttributes - Array of route attribute objects for all variants.
  */
 export async function selectRouteGroup(selectedObjectId, allVariantAttributes) {
@@ -694,40 +693,68 @@ export async function selectRouteGroup(selectedObjectId, allVariantAttributes) {
     cursorLayer.removeAll();
     currentGroupFeatures = {};
 
+    const hasMultipleVariants = allVariantAttributes.length > 1;
+    // If multiple variants and no explicit selection, open without selecting any
+    const effectiveSelectedId = hasMultipleVariants ? null : selectedObjectId;
+
     const fetched = await Promise.all(allVariantAttributes.map(attr => fetchRouteGeometry(attr.OBJECTID)));
 
     for (const feature of fetched) {
         if (!feature) continue;
         currentGroupFeatures[feature.attributes.OBJECTID] = feature;
-        const isSelected = feature.attributes.OBJECTID === selectedObjectId;
+    }
+
+    // Add unselected features first
+    for (const feature of fetched) {
+        if (!feature) continue;
+        const isSelected = effectiveSelectedId !== null && feature.attributes.OBJECTID === effectiveSelectedId;
+        if (!isSelected) {
+            routeLayer.add(new Graphic({
+                geometry: feature.geometry,
+                symbol: DIM_SYMBOL,
+                attributes: { OBJECTID: feature.attributes.OBJECTID }
+            }));
+        }
+    }
+
+    // Add selected feature last so it renders on top
+    if (effectiveSelectedId !== null && currentGroupFeatures[effectiveSelectedId]) {
         routeLayer.add(new Graphic({
-            geometry: feature.geometry,
-            symbol: isSelected ? ACTIVE_SYMBOL : DIM_SYMBOL,
-            attributes: { OBJECTID: feature.attributes.OBJECTID }
+            geometry: currentGroupFeatures[effectiveSelectedId].geometry,
+            symbol: ACTIVE_SYMBOL,
+            attributes: { OBJECTID: effectiveSelectedId }
         }));
     }
 
-    const selectedFeature = currentGroupFeatures[selectedObjectId];
-    if (!selectedFeature) return;
-
-    currentRouteGeometry = selectedFeature.geometry;
     // Zoom to the combined extent of all variants in the group
     const allGeometries = Object.values(currentGroupFeatures).map(f => f.geometry);
     const groupExtent = allGeometries.reduce((acc, geom) => acc ? acc.union(geom.extent) : geom.extent, null);
-    // bottom padding accounts for the 200px elevation chart + 20px margin
-    view.goTo(groupExtent, { padding: { top: 40, left: 40, right: 40, bottom: 220 } });
-    document.getElementById("chart-container").classList.add("active");
 
-    document.dispatchEvent(new CustomEvent("routeGroupSelected", {
-        detail: { selectedAttributes: selectedFeature.attributes, allVariants: allVariantAttributes }
-    }));
+    if (effectiveSelectedId !== null) {
+        const selectedFeature = currentGroupFeatures[effectiveSelectedId];
+        if (!selectedFeature) return;
+        currentRouteGeometry = selectedFeature.geometry;
+        view.goTo(groupExtent, { padding: { top: 40, left: 40, right: 40, bottom: 220 } });
+        document.getElementById("chart-container").classList.add("active");
 
-    try {
-        const samples = await buildSamplesFromFeature(selectedFeature);
-        currentRouteSamples = samples;
-        updateChartData(samples.map(s => s.distance), samples.map(s => s.elevation));
-    } catch (error) {
-        console.error("!!! Error processing elevation data !!!", error);
+        document.dispatchEvent(new CustomEvent("routeGroupSelected", {
+            detail: { selectedAttributes: selectedFeature.attributes, allVariants: allVariantAttributes }
+        }));
+
+        try {
+            const samples = await buildSamplesFromFeature(selectedFeature);
+            currentRouteSamples = samples;
+            updateChartData(samples.map(s => s.distance), samples.map(s => s.elevation));
+        } catch (error) {
+            console.error("!!! Error processing elevation data !!!", error);
+        }
+    } else {
+        // Multiple variants, none selected: zoom to group, open panel without variant selected
+        currentRouteGeometry = null;
+        view.goTo(groupExtent, { padding: { top: 40, left: 40, right: 40, bottom: 40 } });
+        document.dispatchEvent(new CustomEvent("routeGroupSelected", {
+            detail: { selectedAttributes: null, allVariants: allVariantAttributes }
+        }));
     }
 }
 
@@ -736,16 +763,27 @@ export async function selectRouteGroup(selectedObjectId, allVariantAttributes) {
  * @param {number} newObjectId
  */
 export async function switchVariant(newObjectId) {
+    let focusGraphic = null;
     routeLayer.graphics.forEach(graphic => {
         const isSelected = graphic.attributes.OBJECTID === newObjectId;
         graphic.symbol = isSelected ? ACTIVE_SYMBOL : DIM_SYMBOL;
+        if (isSelected) focusGraphic = graphic;
     });
+
+    // Bring to front
+    if (focusGraphic) {
+        routeLayer.remove(focusGraphic);
+        routeLayer.add(focusGraphic);
+    }
 
     const selectedFeature = currentGroupFeatures[newObjectId];
     if (!selectedFeature) return;
 
     currentRouteGeometry = selectedFeature.geometry;
     cursorLayer.removeAll();
+
+    // Ensure chart is visible when switching from general view
+    document.getElementById("chart-container").classList.add("active");
 
     try {
         const samples = await buildSamplesFromFeature(selectedFeature);

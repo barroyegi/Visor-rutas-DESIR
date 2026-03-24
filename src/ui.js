@@ -27,6 +27,14 @@ function formatDuration(value) {
   return `${hours}:${minutes.toString().padStart(2, '0')} h`;
 }
 
+function formatDistance(val) {
+  if (val === null || val === undefined) return "N/A";
+  // longitud_km is already in km
+  const km = parseFloat(val);
+  if (isNaN(km)) return "N/A";
+  return km.toFixed(1);
+}
+
 // Map to keep track of pre-fetched images to avoid redundant loads
 const prefetchedImages = new Set();
 
@@ -74,7 +82,7 @@ export function renderTable(routes, containerId, allVariantGroups = new Map(), i
     const hasVariants = variants.length > 1;
 
     const dist = route[config.fields.distance];
-    const distRedondeada = dist ? dist.toFixed(2) : "N/A";
+    const distRedondeada = formatDistance(dist);
 
     tr.innerHTML = `
     <td colspan="4" class="route-card-cell">
@@ -242,8 +250,8 @@ export function initFilters(routes, onFilterChange) {
     const maxDistance = parseFloat(sliderTwo.value);
 
     filtered = filtered.filter(r => {
-      const dist = r[config.fields.distance];
-      return dist >= minDistance && dist <= maxDistance;
+      const distKm = r[config.fields.distance];
+      return distKm >= minDistance && distKm <= maxDistance;
     });
 
     // Filtro de búsqueda por texto (nombre)
@@ -302,33 +310,88 @@ export function initFilters(routes, onFilterChange) {
   });
 }
 
+function resolveVariantField(attributes, fieldName) {
+  const variantValue = attributes[fieldName + "_variante"];
+  if (variantValue !== null && variantValue !== undefined && String(variantValue).trim() !== "") {
+    return variantValue;
+  }
+  return attributes[fieldName];
+}
+
+/**
+ * Resolves the description for a selected variant with explicit priority:
+ * 1. <lang_field>_variante  (e.g. Descripcion_fr_variante)
+ * 2. description_variante   (Spanish variant description as cross-lang fallback)
+ * 3. <lang_field>           (e.g. Descripcion_fr)
+ * 4. description            (base Spanish, last resort)
+ */
+function resolveVariantDescription(attributes, langField) {
+  const hasValue = (v) => v !== null && v !== undefined && String(v).trim() !== "";
+
+  // 1. Lang-specific _variante
+  const langVariante = attributes[langField + "_variante"];
+  if (hasValue(langVariante)) return langVariante;
+
+  // 2. Spanish _variante (only if lang field is not already "description")
+  if (langField !== config.fields.description.es) {
+    const esVariante = attributes[config.fields.description.es + "_variante"];
+    if (hasValue(esVariante)) return esVariante;
+  }
+
+  // 3. Lang-specific base
+  const langBase = attributes[langField];
+  if (hasValue(langBase)) return langBase;
+
+  // 4. Spanish base (last resort)
+  return attributes[config.fields.description.es] || "No description available";
+}
+
 export function renderRouteDetails(attributes, allVariants = []) {
   const container = document.querySelector(".details-container");
   const contentDiv = document.getElementById("route-details");
   const overlay = document.querySelector(".sidebar-overlay");
   const sidebar = document.querySelector(".sidebar");
 
-  if (!attributes) {
-    // Hide details
+  // attributes === null means: multi-variant group, no variant selected yet
+  const isGeneralView = attributes === null && allVariants.length > 1;
+
+  if (!attributes && !isGeneralView) {
+    // Hide details completely
     container.classList.remove("active");
     overlay.classList.remove("active");
     sidebar.classList.remove("details-open");
     return;
   }
 
-  // Show details and overlay, block sidebar scroll
+  // Show details panel
   container.classList.add("active");
   overlay.classList.add("active");
   sidebar.classList.add("details-open");
 
-  const imagesField = attributes[config.fields.images] || "";
-  const imageUrls = imagesField.split('|').map(s => s.trim()).filter(s => s.length > 0);
+  // Use the first variant's data for the general header name
+  const headerAttributes = isGeneralView ? allVariants[0] : attributes;
 
-  const selectedOid = attributes.OBJECTID;
+  // Resolve image, description and download fields preferring _variante versions
+  const imagesRaw = isGeneralView
+    ? (headerAttributes[config.fields.images] || "")
+    : (resolveVariantField(attributes, config.fields.images) || "");
+  const imageUrls = imagesRaw.split('|').map(s => s.trim()).filter(s => s.length > 0);
+
+  const descriptionField = isGeneralView
+    ? (headerAttributes[config.fields.description[getCurrentLang()]]
+      || headerAttributes[config.fields.description.es]
+      || "No description available")
+    : resolveVariantDescription(attributes, config.fields.description[getCurrentLang()]);
+
+  const downloadUrl = isGeneralView
+    ? headerAttributes[config.fields.downloadUrl]
+    : resolveVariantField(attributes, config.fields.downloadUrl);
+
+  const selectedOid = isGeneralView ? null : attributes.OBJECTID;
 
   contentDiv.innerHTML = `
     <div class="details-header">
-      <h3>${attributes[config.fields.name]}</h3>
+      <h3>${headerAttributes[config.fields.name]}</h3>
       <button class="close-details-btn" id="close-details-btn">&times;</button>
     </div>
 
@@ -336,7 +399,11 @@ export function renderRouteDetails(attributes, allVariants = []) {
     <div class="variant-selector">
       <span class="variant-label">Variantes</span>
       <div class="variant-pills">
-        ${allVariants.map((v, i) => `
+        ${[...allVariants].sort((a, b) => {
+    const nameA = a[config.fields.variantName] || a[config.fields.name] || "";
+    const nameB = b[config.fields.variantName] || b[config.fields.name] || "";
+    return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+  }).map((v, i) => `
           <button class="variant-pill${v.OBJECTID === selectedOid ? ' active' : ''}" data-oid="${v.OBJECTID}">
             ${v[config.fields.variantName] || v[config.fields.name] || `Variante ${i + 1}`}
           </button>
@@ -345,6 +412,7 @@ export function renderRouteDetails(attributes, allVariants = []) {
     </div>
     ` : ''}
     
+    ${!isGeneralView ? `
     <div class="route-stats-grid">
       <div class="stat-item">
         <div class="stat-icon">
@@ -352,7 +420,7 @@ export function renderRouteDetails(attributes, allVariants = []) {
         </div>
         <div class="stat-info">
           <span class="stat-label">${t("distance")}</span>
-          <span class="stat-value">${attributes[config.fields.distance]} km</span>
+          <span class="stat-value">${formatDistance(attributes[config.fields.distance])} km</span>
         </div>
       </div>
       
@@ -386,10 +454,11 @@ export function renderRouteDetails(attributes, allVariants = []) {
         </div>
       </div>
     </div>
+    ` : ''}
     
-    ${attributes[config.fields.downloadUrl] ? `
+    ${downloadUrl ? `
       <div class="download-container">
-        <a href="${attributes[config.fields.downloadUrl]}" download class="download-route-btn">
+        <a href="${downloadUrl}" download class="download-route-btn">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
@@ -400,9 +469,9 @@ export function renderRouteDetails(attributes, allVariants = []) {
       </div>
     ` : ""}
 
-    ${attributes[config.fields.routeCode] ? `
+    ${routeCode ? `
       <div class="info-sheet-container">
-        <a href="https://senderos.nafarmendi.org/Ruta/ver/${attributes[config.fields.routeCode]}" target="_blank" class="info-sheet-btn">
+        <a href="https://senderos.nafarmendi.org/Ruta/ver/${routeCode}" target="_blank" class="info-sheet-btn">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
             <polyline points="14 2 14 8 20 8"></polyline>
@@ -416,7 +485,8 @@ export function renderRouteDetails(attributes, allVariants = []) {
     ` : ""}
     
     <h4>${t("description")}</h4>
-    <p>${attributes[config.fields.description[getCurrentLang()]] || attributes[config.fields.description.es] || "No description available"}</p>
+    <p>${descriptionField}</p>
+    
     
     ${imageUrls.length > 0 ? `
       <h4>${t("photos")}</h4>
@@ -450,11 +520,13 @@ export function renderRouteDetails(attributes, allVariants = []) {
     contentDiv.querySelectorAll(".variant-pill").forEach(pill => {
       pill.addEventListener("click", () => {
         const newOid = parseInt(pill.getAttribute("data-oid"), 10);
-        // Update active pill visually
-        contentDiv.querySelectorAll(".variant-pill").forEach(p => p.classList.remove("active"));
-        pill.classList.add("active");
-        // Switch variant on map and chart
-        switchVariant(newOid);
+        const newSelected = allVariants.find(v => v.OBJECTID === newOid);
+        if (newSelected) {
+          // Re-render details with the selected variant (will use _variante fields)
+          renderRouteDetails(newSelected, allVariants);
+          // Switch variant on map and chart
+          switchVariant(newOid);
+        }
       });
     });
   }
