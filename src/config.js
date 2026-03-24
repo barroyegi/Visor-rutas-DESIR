@@ -26,6 +26,7 @@ export const config = {
         downloadUrl: "URL_Descarga",
         routeCode: "cod_ruta",
         matricula: "Matricula",
+        variantName: "Variante",
         // Language-specific field mappings
         description: {
             es: "description",

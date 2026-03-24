@@ -1,8 +1,23 @@
-import { initializeMap, renderStartPoints, filterStartPoints, zoomToGraphics, onExtentChange } from './src/map.js';
+import { initializeMap, renderStartPoints, filterStartPoints, zoomToGraphics, onExtentChange, selectRouteGroup } from './src/map.js';
 import { fetchRoutesList, fetchStartPoints } from './src/data.js';
 import { renderTable, initFilters, renderRouteDetails } from './src/ui.js';
 import { initLanguageSwitcher } from './src/i18n.js';
 import { config } from './src/config.js';
+
+/**
+ * Groups routes by cod_ruta. Returns a Map: cod_ruta (string) → [route, ...]
+ * Routes without cod_ruta get their own group keyed by OBJECTID.
+ */
+function buildVariantGroups(routes) {
+    const groups = new Map();
+    for (const route of routes) {
+        const cod = route[config.fields.routeCode] ?? `_${route.OBJECTID}`;
+        if (!groups.has(cod)) groups.set(cod, []);
+        groups.get(cod).push(route);
+    }
+    return groups;
+}
+
 
 async function init() {
     console.log("Inicializando aplicacion...");
@@ -17,6 +32,9 @@ async function init() {
     // 2. Fetch Data
     const routes = await fetchRoutesList();
     console.log("Rutas obtenidas:", routes);
+
+    // Build variant groups (all routes, unfiltered)
+    const allVariantGroups = buildVariantGroups(routes);
 
     // 3. Fetch and Render Start Points on Map
     const startPoints = await fetchStartPoints();
@@ -35,19 +53,20 @@ async function init() {
             return hasMatch;
         });
 
-        if (finalRoutes.length === 0 && filteredRoutes.length > 0) {
+        // Show one representative per cod_ruta group
+        const seenCodes = new Set();
+        const deduped = finalRoutes.filter(r => {
+            const cod = r[config.fields.routeCode] ?? `_${r.OBJECTID}`;
+            if (seenCodes.has(cod)) return false;
+            seenCodes.add(cod);
+            return true;
+        });
+
+        if (deduped.length === 0 && filteredRoutes.length > 0) {
             console.warn(`[UpdateDisplay] Intersection empty! Showing all filtered routes as fallback.`);
-            // Fallback: if extent sync is failing for some reason, show all filtered routes
-            // but log the details for debugging
-            if (visibleIds.size > 0) {
-                const sampleFilteredId = filteredRoutes[0].OBJECTID;
-                const sampleVisibleId = Array.from(visibleIds)[0];
-                console.warn(`Sample filtered ID: ${sampleFilteredId} (type: ${typeof sampleFilteredId})
-                    Sample visible ID: ${sampleVisibleId} (type: ${typeof sampleVisibleId})`);
-            }
-            renderTable(filteredRoutes, "routes-list", isInitialLoad);
+            renderTable(filteredRoutes, "routes-list", allVariantGroups, isInitialLoad);
         } else {
-            renderTable(finalRoutes, "routes-list", isInitialLoad);
+            renderTable(deduped, "routes-list", allVariantGroups, isInitialLoad);
         }
         isInitialLoad = false;
     };
@@ -108,11 +127,33 @@ async function init() {
         updateDisplay();
     });
 
-    // 6. Listen for route selection (from Map or Table)
+    // 6. Listen for click on a map start point
     let currentRoute = null;
-    document.addEventListener("routeSelected", (e) => {
-        currentRoute = e.detail;
-        renderRouteDetails(currentRoute);
+    document.addEventListener("mapStartPointClicked", (e) => {
+        const objectId = Number(e.detail);
+        console.log(`[MapClick] Start point clicked, OID: ${objectId}`);
+        // Find the full variant group for this OBJECTID
+        let selectedVariants = null;
+        for (const [cod, variants] of allVariantGroups) {
+            if (variants.find(v => Number(v.OBJECTID) === objectId)) {
+                selectedVariants = variants;
+                console.log(`[MapClick] Found group: ${cod} (${variants.length} variant(s))`);
+                break;
+            }
+        }
+        if (selectedVariants) {
+            selectRouteGroup(objectId, selectedVariants);
+        } else {
+            console.warn(`[MapClick] No group found for OID: ${objectId}. Falling back to single-route call.`);
+            // Fallback: treat as solo route using the minimal attribute set
+            selectRouteGroup(objectId, [{ OBJECTID: objectId }]);
+        }
+    });
+
+    // 7. Listen for route group selection (fires after selectRouteGroup completes)
+    document.addEventListener("routeGroupSelected", (e) => {
+        currentRoute = e.detail.selectedAttributes;
+        renderRouteDetails(e.detail.selectedAttributes, e.detail.allVariants);
     });
 
     document.addEventListener("clearSelection", () => {
