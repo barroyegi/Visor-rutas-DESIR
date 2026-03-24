@@ -795,3 +795,75 @@ header h1 {
         font-size: 1.2rem;
     }
 }
+
+/* ---- Route Variant Styles ---- */
+
+/* Badge on list card when a route has multiple variants */
+.variants-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--primary-color);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    margin-left: 8px;
+    margin-top: 2px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Variant selector block in the details panel */
+.variant-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: #f5f8fc;
+    border: 1px solid #d0dce9;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 1.2rem;
+}
+
+.variant-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #888;
+    letter-spacing: 0.5px;
+}
+
+.variant-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.variant-pill {
+    background: white;
+    border: 1.5px solid #c0cdd9;
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #797979;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+}
+
+.variant-pill:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: #e8f0fb;
+}
+
+.variant-pill.active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 2px 6px rgba(34, 115, 193, 0.3);
+}

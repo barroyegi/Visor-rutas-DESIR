@@ -1,5 +1,5 @@
 import { config } from "./config.js";
-import { selectRoute, highlightPoint, removeHighlight } from "./map.js";
+import { selectRoute, selectRouteGroup, highlightPoint, removeHighlight, switchVariant } from "./map.js";
 import { t, tData, getCurrentLang } from "./i18n.js";
 
 function formatDuration(value) {
@@ -42,7 +42,7 @@ export function prefetchImage(url) {
   console.log(`[Prefetch] Started: ${url}`);
 }
 
-export function renderTable(routes, containerId, isLoading = false) {
+export function renderTable(routes, containerId, allVariantGroups = new Map(), isLoading = false) {
   const container = document.getElementById(containerId);
   container.innerHTML = "";
 
@@ -69,6 +69,10 @@ export function renderTable(routes, containerId, isLoading = false) {
   routes.forEach(route => {
     const tr = document.createElement("tr");
 
+    const cod = route[config.fields.routeCode] ?? `_${route.OBJECTID}`;
+    const variants = allVariantGroups.get(cod) || [route];
+    const hasVariants = variants.length > 1;
+
     const dist = route[config.fields.distance];
     const distRedondeada = dist ? dist.toFixed(2) : "N/A";
 
@@ -78,6 +82,7 @@ export function renderTable(routes, containerId, isLoading = false) {
         <div class="route-card-name">
           ${route[config.fields.name] || "N/A"}
           ${route[config.fields.matricula] === "GR" ? '<div class="gr-symbol" title="Gran Recorrido (GR)"></div>' : ''}
+          ${hasVariants ? `<span class="variants-badge" title="${variants.length} variantes">${variants.length}</span>` : ''}
         </div>
 
         <div class="route-card-details">
@@ -95,7 +100,7 @@ export function renderTable(routes, containerId, isLoading = false) {
     const card = tr.querySelector(".route-card");
 
     card.addEventListener("click", () => {
-      selectRoute(route.OBJECTID);
+      selectRouteGroup(route.OBJECTID, variants);
     });
 
     card.addEventListener("mouseenter", () => {
@@ -297,7 +302,7 @@ export function initFilters(routes, onFilterChange) {
   });
 }
 
-export function renderRouteDetails(attributes) {
+export function renderRouteDetails(attributes, allVariants = []) {
   const container = document.querySelector(".details-container");
   const contentDiv = document.getElementById("route-details");
   const overlay = document.querySelector(".sidebar-overlay");
@@ -319,11 +324,26 @@ export function renderRouteDetails(attributes) {
   const imagesField = attributes[config.fields.images] || "";
   const imageUrls = imagesField.split('|').map(s => s.trim()).filter(s => s.length > 0);
 
+  const selectedOid = attributes.OBJECTID;
+
   contentDiv.innerHTML = `
     <div class="details-header">
       <h3>${attributes[config.fields.name]}</h3>
       <button class="close-details-btn" id="close-details-btn">&times;</button>
     </div>
+
+    ${allVariants.length > 1 ? `
+    <div class="variant-selector">
+      <span class="variant-label">Variantes</span>
+      <div class="variant-pills">
+        ${allVariants.map((v, i) => `
+          <button class="variant-pill${v.OBJECTID === selectedOid ? ' active' : ''}" data-oid="${v.OBJECTID}">
+            ${v[config.fields.variantName] || v[config.fields.name] || `Variante ${i + 1}`}
+          </button>
+        `).join('')}
+      </div>
+    </div>
+    ` : ''}
     
     <div class="route-stats-grid">
       <div class="stat-item">
@@ -421,6 +441,20 @@ export function renderRouteDetails(attributes) {
       thumb.addEventListener("click", () => {
         const index = parseInt(thumb.getAttribute("data-index"));
         openPhotoModal(imageUrls, index);
+      });
+    });
+  }
+
+  // Add event listeners to variant pills
+  if (allVariants.length > 1) {
+    contentDiv.querySelectorAll(".variant-pill").forEach(pill => {
+      pill.addEventListener("click", () => {
+        const newOid = parseInt(pill.getAttribute("data-oid"), 10);
+        // Update active pill visually
+        contentDiv.querySelectorAll(".variant-pill").forEach(p => p.classList.remove("active"));
+        pill.classList.add("active");
+        // Switch variant on map and chart
+        switchVariant(newOid);
       });
     });
   }
