@@ -73,25 +73,24 @@ async function init() {
 
     // 4. Aplicar filtro inicial de distancia (0-100km) y poblar el listado
     // Lo hacemos con un pequeño retardo para asegurar que la vista del mapa esté lista
-    setTimeout(async () => {
-        const initialFilteredRoutes = routes.filter(r => {
-            const distKm = r[config.fields.distance];
-            return distKm !== null && distKm !== undefined && distKm >= 0 && distKm <= 100;
-        });
+    const initialFilteredRoutes = routes.filter(r => {
+        const distKm = r[config.fields.distance];
+        if (distKm == null || isNaN(distKm)) return true;
+        return distKm >= 0;
+    });
 
-        isFiltering = true;
-        filteredRoutes = initialFilteredRoutes;
-        visibleIds = new Set(initialFilteredRoutes.map(r => String(r.OBJECTID)));
+    isFiltering = true;
+    filteredRoutes = initialFilteredRoutes;
+    visibleIds = new Set(initialFilteredRoutes.map(r => String(r.OBJECTID)));
 
-        // Aplicar filtro de la SDK (FeatureFilter)
-        await filterStartPoints(initialFilteredRoutes.map(r => r.OBJECTID));
+    // Aplicar filtro de la SDK (FeatureFilter)
+    await filterStartPoints(initialFilteredRoutes.map(r => r.OBJECTID));
 
-        isInitialLoad = false; // Quitar estado de carga para el renderizado real
-        updateDisplay();
+    isInitialLoad = false; // Quitar estado de carga para el renderizado real
+    updateDisplay();
 
-        // Liberar el bloqueo de filtrado tras un momento para permitir sincronización de extensión del mapa
-        setTimeout(() => { isFiltering = false; }, 1000);
-    }, 500);
+    // Liberar el bloqueo de filtrado tras un momento para permitir sincronización de extensión del mapa
+    setTimeout(() => { isFiltering = false; }, 1000);
 
 
     // 5. Initialize Filters
