@@ -117,12 +117,12 @@ export async function initializeMap(containerId) {
 
     // Cursor pointer al pasar por startPointsLayer
     view.on("pointer-move", async evt => {
-        const hit = await view.hitTest(evt);
+        const hit = await view.hitTest(evt, { include: [startPointsLayer] });
         const graphic = hit.results.filter(r => r.graphic.layer === startPointsLayer)[0]?.graphic;
 
         if (graphic) {
             view.container.style.cursor = "pointer";
-            highlightPoint(graphic.attributes.routeId);
+            highlightPoint(graphic.attributes.OBJECTID || graphic.attributes.routeId);
 
             // Pre-fetch image when hovering map point
             const imagesField = graphic.attributes[config.fields.images];
@@ -157,12 +157,14 @@ export async function initializeMap(containerId) {
     // Layer for Start Points (FeatureLayer for clustering support)
     startPointsLayer = new FeatureLayer({
         source: [], // Initially empty
+        outFields: ["*"], // Forces layer view to keep all attributes for hitTest
         geometryType: "point",
         spatialReference: { wkid: 4326 },
         objectIdField: "_internalId",
         fields: [
             { name: "_internalId", type: "oid" },
             { name: "routeId", type: "integer" },
+            { name: "OBJECTID", type: "integer" },
             { name: "name_1", type: "string" },
             { name: "cod_ruta", type: "string" },
             { name: "images", type: "string" },
@@ -255,11 +257,11 @@ export async function initializeMap(containerId) {
     ensureCustomLayersOnTop();
 
     view.on("click", async (event) => {
-        const response = await view.hitTest(event);
+        const response = await view.hitTest(event, { include: [startPointsLayer] });
         if (response.results.length > 0) {
             const graphic = response.results.filter(r => r.graphic.layer === startPointsLayer)[0]?.graphic;
             if (graphic && !graphic.isAggregate) {
-                const objectId = graphic.attributes.routeId;
+                const objectId = graphic.attributes.OBJECTID || graphic.attributes.routeId;
                 document.dispatchEvent(new CustomEvent("mapStartPointClicked", { detail: objectId }));
             }
         }
@@ -273,6 +275,7 @@ export async function initializeMap(containerId) {
         clearChart();
         currentRouteGeometry = null;
         currentRouteSamples = null;
+        filterStartPointsByCodRuta(null);
     });
 
     return view;
@@ -300,10 +303,7 @@ export function removeHighlight() {
 }
 
 export async function renderStartPoints(features) {
-    if (features && features.length > 0) {
-        console.log("[Render] First feature attributes sample:", features[0].attributes);
-    }
-    // For FeatureLayer, we use applyEdits to update features
+    console.log(`[Diagnostic] map.js: renderStartPoints received ${features ? features.length : 0} features to render.`);
     const allGraphics = await startPointsLayer.queryFeatures();
 
     const graphics = features.map(f => {
@@ -318,6 +318,7 @@ export async function renderStartPoints(features) {
         // Robust ID lookup: try different standard field names
         const rawId = f.attributes.OBJECTID ?? f.attributes.objectid ?? f.attributes.FID ?? f.attributes.id;
         attributes.routeId = (rawId !== undefined && rawId !== null) ? Number(rawId) : NaN;
+        attributes.OBJECTID = attributes.routeId; // Explicitly map it so it's guaranteed to be passed to layer
 
         if (isNaN(attributes.routeId)) {
             console.error("[Render] Feature has no identifiable ID field:", f.attributes);
@@ -331,10 +332,11 @@ export async function renderStartPoints(features) {
 
     // Atomic operation: delete existing and add new in a single applyEdits call
     // This avoids the intermediate empty state that triggers onExtentChange with 0 features
-    await startPointsLayer.applyEdits({
+    const editsResult = await startPointsLayer.applyEdits({
         deleteFeatures: allGraphics.features.length > 0 ? allGraphics.features : [],
         addFeatures: graphics
     });
+    console.log(`[Diagnostic] map.js: successfully applied edits. Added: ${editsResult.addFeatureResults.length}`);
 }
 
 function updateMapCursor(x, y) {
@@ -565,8 +567,26 @@ export async function filterStartPoints(objectIds) {
         startPointsLayerView.filter = null;
     } else {
         startPointsLayerView.filter = new FeatureFilter({
-            objectIds: objectIds
+            where: objectIds.length > 0 ? `OBJECTID IN (${objectIds.join(',')})` : `1=0`
         });
+    }
+}
+
+export async function filterStartPointsByCodRuta(codRuta) {
+    if (!startPointsLayerView) {
+        await reactiveUtils.whenOnce(() => !!startPointsLayerView);
+    }
+
+    if (!codRuta) {
+        // Remove effect: show all features (that pass the main filter)
+        startPointsLayerView.featureEffect = null;
+    } else {
+        startPointsLayerView.featureEffect = {
+            filter: {
+                where: `cod_ruta = '${codRuta}'`
+            },
+            excludedEffect: "opacity(0)"
+        };
     }
 }
 
@@ -581,7 +601,7 @@ export function onExtentChange(callback) {
 
             try {
                 const results = await startPointsLayer.queryFeatures(query);
-                const visibleIds = results.features.map(f => f.attributes.routeId);
+                const visibleIds = results.features.map(f => f.attributes.OBJECTID || f.attributes.routeId);
                 callback(visibleIds);
             } catch (error) {
                 console.error("Error querying visible features:", error);

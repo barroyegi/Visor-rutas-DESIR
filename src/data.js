@@ -71,23 +71,34 @@ export async function fetchStartPoints() {
         const query = new Query();
         query.where = "1=1";
         query.returnGeometry = true; // We need geometry for fallback
-        query.outFields = [config.fields.name, "OBJECTID", config.fields.xStart, config.fields.yStart, "Variante", "longitud_km"];
+        query.outFields = [
+            config.fields.name,
+            "OBJECTID",
+            config.fields.xStart,
+            config.fields.yStart,
+            "Variante",
+            "longitud_km",
+            config.fields.routeCode,
+            config.fields.images,
+            config.fields.matricula
+        ];
 
         const results = await layer.queryFeatures(query);
-        if (results.features.length > 0) {
-            const firstAttr = results.features[0].attributes;
-            console.log("[Data] fetchStartPoints first feature attributes:", firstAttr);
-            console.log("[Data] All available keys:", Object.keys(firstAttr));
-            console.log("[Data] longitud_km value:", firstAttr["longitud_km"]);
-        }
+        console.log(`[Diagnostic] data.js: fetchStartPoints raw features received from ArcGIS Server: ${results.features.length}`);
 
-        return results.features.map(f => {
-            const x = f.attributes[config.fields.xStart];
-            const y = f.attributes[config.fields.yStart];
+        let invalidCount = 0;
+
+        const graphics = results.features.map(f => {
+            let x = f.attributes[config.fields.xStart];
+            let y = f.attributes[config.fields.yStart];
+
+            x = typeof x === 'string' ? parseFloat(x.trim()) : x;
+            y = typeof y === 'string' ? parseFloat(y.trim()) : y;
 
             let pointGeometry;
 
-            if (x != null && y != null) {
+            // Strict check: if x and y are exactly 0, they are likely empty defaults and should fallback to geometry
+            if (x !== null && y !== null && !isNaN(x) && !isNaN(y) && !(x === 0 && y === 0)) {
                 pointGeometry = new Point({
                     x: x,
                     y: y,
@@ -108,8 +119,13 @@ export async function fetchStartPoints() {
                     attributes: f.attributes
                 });
             }
+            console.error(`[Diagnostic] data.js: Failed to create point geometry for route: "${f.attributes[config.fields.name]}" (OID: ${f.attributes.OBJECTID}). x=${x}, y=${y}, hasGeometry=${!!f.geometry}, geomType=${f.geometry ? f.geometry.type : 'none'}`);
+            invalidCount++;
             return null;
         }).filter(g => g !== null);
+
+        console.log(`[Diagnostic] data.js: fetchStartPoints successfully mapped ${graphics.length} graphics. Failed/No geometry: ${invalidCount}`);
+        return graphics;
 
     } catch (error) {
         console.error("Error fetching start points:", error);

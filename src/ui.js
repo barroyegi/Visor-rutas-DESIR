@@ -1,5 +1,5 @@
 import { config } from "./config.js";
-import { selectRoute, selectRouteGroup, highlightPoint, removeHighlight, switchVariant, clearVariantSelection } from "./map.js";
+import { selectRoute, selectRouteGroup, highlightPoint, removeHighlight, switchVariant, clearVariantSelection, filterStartPointsByCodRuta } from "./map.js";
 import { t, tData, getCurrentLang } from "./i18n.js";
 
 function formatDuration(value) {
@@ -90,6 +90,8 @@ export function renderTable(routes, containerId, allVariantGroups = new Map(), i
         <div class="route-card-name">
           ${route[config.fields.name] || "N/A"}
           ${route[config.fields.matricula] === "GR" ? '<div class="gr-symbol" title="Gran Recorrido (GR)"></div>' : ''}
+          ${route[config.fields.matricula] === "PR" ? '<div class="pr-symbol" title="Pequeño Recorrido (PR)"></div>' : ''}
+          ${route[config.fields.matricula] === "SL" ? '<div class="sl-symbol" title="Sendero Local (SL)"></div>' : ''}
           ${hasVariants ? `<span class="variants-badge" title="${variants.length} variantes">${variants.length}</span>` : ''}
         </div>
 
@@ -251,6 +253,12 @@ export function initFilters(routes, onFilterChange) {
 
     filtered = filtered.filter(r => {
       const distKm = r[config.fields.distance];
+      if (distKm == null || isNaN(distKm)) {
+        return minDistance === 0 && maxDistance >= 100;
+      }
+      if (maxDistance >= 100) {
+        return distKm >= minDistance;
+      }
       return distKm >= minDistance && distKm <= maxDistance;
     });
 
@@ -391,6 +399,8 @@ export function renderRouteDetails(attributes, allVariants = []) {
   const routeCode = isGeneralView
     ? headerAttributes[config.fields.routeCode]
     : resolveVariantField(attributes, config.fields.routeCode);
+
+  filterStartPointsByCodRuta(routeCode);
 
   contentDiv.innerHTML = `
     <div class="details-header">
