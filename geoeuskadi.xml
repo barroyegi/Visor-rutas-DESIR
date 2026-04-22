@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Capabilities xmlns="http://www.opengis.net/wcs/1.1"
+ xmlns:ows="http://www.opengis.net/ows/1.1"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns:xlink="http://www.w3.org/1999/xlink"
+ xsi:schemaLocation="http://www.opengis.net/wcs/1.1 http://schemas.opengis.net/wcs/1.1/wcsGetCapabilities.xsd http://www.opengis.net/ows/1.1/ http://schemas.opengis.net/ows/1.1.0/owsAll.xsd" version="1.1.2">
+  <ows:ServiceIdentification>
+    <ows:Title>WCS_KARTOGRAFIA</ows:Title>
+  <ows:ServiceType>WCS</ows:ServiceType>
+  <ows:ServiceTypeVersion>1.0.0</ows:ServiceTypeVersion>
+  <ows:ServiceTypeVersion>1.1.0</ows:ServiceTypeVersion>
+  <ows:ServiceTypeVersion>1.1.1</ows:ServiceTypeVersion>
+  <ows:ServiceTypeVersion>1.1.2</ows:ServiceTypeVersion>
+  <ows:Fees>NONE</ows:Fees>
+  <ows:AccessConstraints>NONE</ows:AccessConstraints>
+  </ows:ServiceIdentification>
+  <ows:ServiceProvider>
+    <ows:ProviderName></ows:ProviderName>
+    <ows:ServiceContact>
+      <ows:ContactInfo>
+        <ows:Phone>
+        </ows:Phone>
+        <ows:Address>
+        </ows:Address>
+        <ows:OnlineResource xlink:href="https://www.geo.euskadi.eus:443/geoeuskadi/services/U11/WCS_KARTOGRAFIA/MapServer/WCSServer"/>
+      </ows:ContactInfo>
+    </ows:ServiceContact>
+  </ows:ServiceProvider>
+  <ows:OperationsMetadata>
+    <ows:Operation name="GetCapabilities">
+      <ows:DCP>
+        <ows:HTTP>
+          <ows:Get xlink:href="https://www.geo.euskadi.eus:443/geoeuskadi/services/U11/WCS_KARTOGRAFIA/MapServer/WCSServer"/>
+          <ows:Post xlink:href="https://www.geo.euskadi.eus:443/geoeuskadi/services/U11/WCS_KARTOGRAFIA/MapServer/WCSServer"/>
+        </ows:HTTP>
+      </ows:DCP>
+      <ows:Parameter name="service">
+        <ows:AllowedValues>
+          <ows:Value>WCS</ows:Value>
+        </ows:AllowedValues>
+      </ows:Parameter>
+      <ows:Parameter name="AcceptVersions">
+        <ows:AllowedValues>
+          <ows:Value>1.0.0</ows:Value>
+          <ows:Value>1.1.0</ows:Value>
+          <ows:Value>1.1.1</ows:Value>
+          <ows:Value>1.1.2</ows:Value>
+        </ows:AllowedValues>
+      </ows:Parameter>
+    </ows:Operation>
+    <ows:Operation name="DescribeCoverage">
+      <ows:DCP>
+        <ows:HTTP>
+          <ows:Get xlink:href="https://www.geo.euskadi.eus:443/geoeuskadi/services/U11/WCS_KARTOGRAFIA/MapServer/WCSServer"/>
+          <ows:Post xlink:href="https://www.geo.euskadi.eus:443/geoeuskadi/services/U11/WCS_KARTOGRAFIA/MapServer/WCSServer"/>
+        </ows:HTTP>
+      </ows:DCP>
+      <ows:Parameter name="service">
+        <ows:AllowedValues>
+          <ows:Value>WCS</ows:Value>
+        </ows:AllowedValues>
+      </ows:Parameter>
+      <ows:Parameter name="version">
+        <ows:AllowedValues>
+          <ows:Value>1.0.0</ows:Value>
+          <ows:Value>1.1.0</ows:Value>
+          <ows:Value>1.1.1</ows:Value>
+          <ows:Value>1.1.2</ows:Value>
+        </ows:AllowedValues>
+      </ows:Parameter>
+      <ows:Parameter name="Identifier">
+        <ows:AllowedValues>
+          <ows:Value>1</ows:Value>
+          <ows:Value>2</ows:Value>
+          <ows:Value>3</ows:Value>
+          <ows:Value>4</ows:Value>
+          <ows:Value>5</ows:Value>
+          <ows:Value>6</ows:Value>
+          <ows:Value>7</ows:Value>
+          <ows:Value>8</ows:Value>
+          <ows:Value>9</ows:Value>
+          <ows:Value>10</ows:Value>
+          <ows:Value>11</ows:Value>
+          <ows:Value>12</ows:Value>
+          <ows:Value>13</ows:Value>
+          <ows:Value>14</ows:Value>
+          <ows:Value>15</ows:Value>
+          <ows:Value>16</ows:Value>
+          <ows:Value>17</ows:Value>
+          <ows:Value>18</ows:Value>
+          <ows:Value>19</ows:Value>
+          <ows:Value>20</ows:Value>
+          <ows:Value>21</ows:Value>
+          <ows:Value>22</ows:Value>
+          <ows:Value>23</ows:Value>
+        </ows:AllowedValues>
+      </ows:Parameter>
+    </ows:Operation>
+    <ows:Operation name="GetCoverage">
+      <ows:DCP>
+        <ows:HTTP>
+          <ows:Get xlink:href="https://www.geo.euskadi.eus:443/geoeuskadi/services/U11/WCS_KARTOGRAFIA/MapServer/WCSServer"/>
+          <ows:Post xlink:href="https://www.geo.euskadi.eus:443/geoeuskadi/services/U11/WCS_KARTOGRAFIA/MapServer/WCSServer"/>
+        </ows:HTTP>
+      </ows:DCP>
+      <ows:Parameter name="service">
+        <ows:AllowedValues>
+          <ows:Value>WCS</ows:Value>
+        </ows:AllowedValues>
+      </ows:Parameter>
+      <ows:Parameter name="version">
+        <ows:AllowedValues>
+          <ows:Value>1.0.0</ows:Value>
+          <ows:Value>1.1.0</ows:Value>
+          <ows:Value>1.1.1</ows:Value>
+          <ows:Value>1.1.2</ows:Value>
+        </ows:AllowedValues>
+      </ows:Parameter>
+      <ows:Parameter name="Identifier">
+        <ows:AllowedValues>
+          <ows:Value>1</ows:Value>
+          <ows:Value>2</ows:Value>
+          <ows:Value>3</ows:Value>
+          <ows:Value>4</ows:Value>
+          <ows:Value>5</ows:Value>
+          <ows:Value>6</ows:Value>
+          <ows:Value>7</ows:Value>
+          <ows:Value>8</ows:Value>
+          <ows:Value>9</ows:Value>
+          <ows:Value>10</ows:Value>
+          <ows:Value>11</ows:Value>
+          <ows:Value>12</ows:Value>
+          <ows:Value>13</ows:Value>
+          <ows:Value>14</ows:Value>
+          <ows:Value>15</ows:Value>
+          <ows:Value>16</ows:Value>
+          <ows:Value>17</ows:Value>
+          <ows:Value>18</ows:Value>
+          <ows:Value>19</ows:Value>
+          <ows:Value>20</ows:Value>
+          <ows:Value>21</ows:Value>
+          <ows:Value>22</ows:Value>
+          <ows:Value>23</ows:Value>
+        </ows:AllowedValues>
+      </ows:Parameter>
+      <ows:Parameter name="InterpolationType">
+        <ows:AllowedValues>
+          <ows:Value>nearest</ows:Value>
+          <ows:Value>linear</ows:Value>
+          <ows:Value>cubic</ows:Value>
+        </ows:AllowedValues>
+      </ows:Parameter>
+      <ows:Parameter name="format">
+        <ows:AllowedValues>
+          <ows:Value>image/GeoTIFF</ows:Value>
+          <ows:Value>image/NITF</ows:Value>
+          <ows:Value>image/JPEG</ows:Value>
+          <ows:Value>image/PNG</ows:Value>
+          <ows:Value>image/JPEG2000</ows:Value>
+          <ows:Value>image/HDF</ows:Value>
+        </ows:AllowedValues>
+      </ows:Parameter>
+      <ows:Parameter name="store">
+        <ows:AllowedValues>
+          <ows:Value>False</ows:Value>
+          <ows:Value>True</ows:Value>
+        </ows:AllowedValues>
+      </ows:Parameter>
+    </ows:Operation>
+  </ows:OperationsMetadata>
+  <Contents>
+    <CoverageSummary>
+      <ows:Title>MDS_LIDAR_1M_EGUNERATUENA_MAS_ACTUALIZADA</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.45695540862444517 42.4633528205216564</ows:LowerCorner>
+        <ows:UpperCorner>-1.71459958931381373 43.4587026932110163</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>1</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_1M_EGUNERATUENA_MAS_ACTUALIZADA</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.48168860529845059 42.4516305593569214</ows:LowerCorner>
+        <ows:UpperCorner>-1.68352341791473159 43.4587026972686985</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>2</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_5M_EGUNERATUENA_MAS_ACTUALIZADA</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.45765112609505643 42.4630203021988848</ows:LowerCorner>
+        <ows:UpperCorner>-1.68356116050391735 43.4575321248543815</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>3</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_25M_EGUNERATUENA_MAS_ACTUALIZADA</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.48145340076066256 42.4517678126077058</ows:LowerCorner>
+        <ows:UpperCorner>-1.68372209370237624 43.4586576729300305</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>4</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>ORIENTACIONES_LIDAR_25M_EGUNERATUENA_MAS_ACTUALIZADA</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.48145340076066256 42.4517678126077058</ows:LowerCorner>
+        <ows:UpperCorner>-1.68372209370237624 43.4586576729300305</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>5</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>PENDIENTES_LIDAR_25M_EGUNERATUENA_MAS_ACTUALIZADA</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.48145340076066256 42.4517678126077058</ows:LowerCorner>
+        <ows:UpperCorner>-1.68372209370237624 43.4586576729300305</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>6</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDS_LIDAR_2008_1M</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.45737920147011302 42.4630203021988848</ows:LowerCorner>
+        <ows:UpperCorner>-1.68356116050391735 43.457532126517961</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>7</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_2008_1M</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.45737920147011302 42.4630203021988848</ows:LowerCorner>
+        <ows:UpperCorner>-1.68356116050391735 43.457532126517961</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>8</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_2008_5M</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.45765112609505643 42.4630196148363979</ows:LowerCorner>
+        <ows:UpperCorner>-1.68349938060564597 43.4575321249983446</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>9</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_2008_25M</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.45765112609505643 42.4630189274416736</ows:LowerCorner>
+        <ows:UpperCorner>-1.683437600709631 43.4575321251400837</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>10</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDS_LIDAR_2012_1M</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.45695540862444517 42.4633528205216564</ows:LowerCorner>
+        <ows:UpperCorner>-1.71459958931381373 43.4587026932110163</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>11</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_2012_1M</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.48168860529845059 42.4516487040724044</ows:LowerCorner>
+        <ows:UpperCorner>-1.68353577413267286 43.4587026972794632</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>12</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_2012_5M</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.45765112609505643 42.4630189274416736</ows:LowerCorner>
+        <ows:UpperCorner>-1.683437600709631 43.4575321251400837</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>13</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_2012_25M</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.48145340076066256 42.4517678126077058</ows:LowerCorner>
+        <ows:UpperCorner>-1.68372209370237624 43.4586576729300305</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>14</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_2013_1M</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.48168860529845059 42.4516487040724044</ows:LowerCorner>
+        <ows:UpperCorner>-1.68353577413267286 43.4587026972794632</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>15</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_2013_5M</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.45765112609505643 42.4630203021988848</ows:LowerCorner>
+        <ows:UpperCorner>-1.68356116050391735 43.4575321248543815</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>16</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_2013_25M</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.48145340076066256 42.4517678126077058</ows:LowerCorner>
+        <ows:UpperCorner>-1.68372209370237624 43.4586576729300305</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>17</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_2016_1M</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.48168860529845059 42.4516487040724044</ows:LowerCorner>
+        <ows:UpperCorner>-1.68353577413267286 43.4587026972794632</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>18</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_2016_5M</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.48168860529845059 42.4516305593569214</ows:LowerCorner>
+        <ows:UpperCorner>-1.68352341791473159 43.4587026972686985</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>19</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_2016_25M</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.48168860529845059 42.4515869152007568</ows:LowerCorner>
+        <ows:UpperCorner>-1.68364698009821057 43.458702697232404</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>20</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_2017_1M</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.48168860529845059 42.4516305593569214</ows:LowerCorner>
+        <ows:UpperCorner>-1.68352341791473159 43.4587026972686985</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>21</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_2017_5M</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.45765112609505643 42.4630203021988848</ows:LowerCorner>
+        <ows:UpperCorner>-1.68356116050391735 43.4575321248543815</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>22</Identifier>
+    </CoverageSummary>
+    <CoverageSummary>
+      <ows:Title>MDT_LIDAR_2017_25M</ows:Title>
+      <ows:Abstract></ows:Abstract>
+      <ows:WGS84BoundingBox>
+        <ows:LowerCorner>-3.48145340076066256 42.4517678126077058</ows:LowerCorner>
+        <ows:UpperCorner>-1.68372209370237624 43.4586576729300305</ows:UpperCorner>
+      </ows:WGS84BoundingBox>
+      <Identifier>23</Identifier>
+    </CoverageSummary>
+    <SupportedCRS>urn:ogc:def:crs:EPSG::4326</SupportedCRS>
+    <SupportedCRS>urn:ogc:def:crs:EPSG::25830</SupportedCRS>
+    <SupportedFormat>image/GeoTIFF</SupportedFormat>
+    <SupportedFormat>image/NITF</SupportedFormat>
+    <SupportedFormat>image/JPEG</SupportedFormat>
+    <SupportedFormat>image/PNG</SupportedFormat>
+    <SupportedFormat>image/JPEG2000</SupportedFormat>
+    <SupportedFormat>image/HDF</SupportedFormat>
+  </Contents>
+</Capabilities>

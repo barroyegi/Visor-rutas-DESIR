@@ -408,22 +408,35 @@ export function renderRouteDetails(attributes, allVariants = []) {
       <button class="close-details-btn" id="close-details-btn">&times;</button>
     </div>
 
-    ${allVariants.length > 1 ? `
-    <div class="variant-selector">
-      <span class="variant-label">Variantes</span>
-      <div class="variant-pills">
-        ${[...allVariants].sort((a, b) => {
-    const nameA = a[config.fields.variantName] || a[config.fields.name] || "";
-    const nameB = b[config.fields.variantName] || b[config.fields.name] || "";
-    return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
-  }).map((v, i) => `
-          <button class="variant-pill${v.OBJECTID === selectedOid ? ' active' : ''}" data-oid="${v.OBJECTID}">
-            ${v[config.fields.variantName] || v[config.fields.name] || `Variante ${i + 1}`}
-          </button>
-        `).join('')}
-      </div>
-    </div>
-    ` : ''}
+    ${allVariants.length > 1 ? (() => {
+      const getVName = (v) => (v[config.fields.variantName] || v[config.fields.name] || "").trim();
+      const sorted = [...allVariants].sort((a, b) => {
+        return getVName(a).localeCompare(getVName(b), undefined, { numeric: true, sensitivity: 'base' });
+      });
+      const rutaCompleta = sorted.filter(v => getVName(v).toLowerCase() === "ruta completa");
+      const etapas = sorted.filter(v => {
+        const n = getVName(v);
+        return /^\d/.test(n) && !n.toLowerCase().includes("variante");
+      });
+      const variantes = sorted.filter(v => {
+        const n = getVName(v);
+        return n.toLowerCase() !== "ruta completa" && !(/^\d/.test(n) && !n.toLowerCase().includes("variante"));
+      });
+      const buildGroup = (label, items) => items.length === 0 ? '' : `
+      <div class="variant-selector">
+        <span class="variant-label">${label}</span>
+        <div class="variant-pills">
+          ${items.map((v, i) => `
+            <button class="variant-pill${v.OBJECTID === selectedOid ? ' active' : ''}" data-oid="${v.OBJECTID}">
+              ${getVName(v) || `Variante ${i + 1}`}
+            </button>
+          `).join('')}
+        </div>
+      </div>`;
+      return buildGroup("Ruta completa", rutaCompleta)
+        + buildGroup("Etapas", etapas)
+        + buildGroup("Variantes", variantes);
+    })() : ''}
     
     ${!isGeneralView ? (() => {
       const distVal = formatDistance(attributes[config.fields.distance]);
