@@ -578,7 +578,26 @@ header h1 {
 
 .route-card-details .left-group {
     display: flex;
-    gap: 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.route-card-details .detail {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background-color: #f0f4f8;
+    color: #4a5568;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.route-card-details .detail svg {
+    color: var(--primary-color);
+    flex-shrink: 0;
 }
 
 /* Table Styles */
