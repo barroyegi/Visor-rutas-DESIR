@@ -88,20 +88,31 @@ export function renderTable(routes, containerId, allVariantGroups = new Map(), i
     <td colspan="4" class="route-card-cell">
       <div class="route-card">
         <div class="route-card-name">
-          ${route[config.fields.name] || "N/A"}
           ${route[config.fields.matricula] === "GR" ? '<div class="gr-symbol" title="Gran Recorrido (GR)"></div>' : ''}
           ${route[config.fields.matricula] === "PR" ? '<div class="pr-symbol" title="Pequeño Recorrido (PR)"></div>' : ''}
           ${route[config.fields.matricula] === "SL" ? '<div class="sl-symbol" title="Sendero Local (SL)"></div>' : ''}
+          ${route[config.fields.name] || "N/A"}
           ${hasVariants ? `<span class="variants-badge" title="${variants.length} variantes">${variants.length}</span>` : ''}
         </div>
 
+        ${!hasVariants ? `
         <div class="route-card-details">
           <div class="left-group">
-            <span class="detail">${distRedondeada} km</span>
-            <span class="detail">${route[config.fields.desnivel_pos] || "N/A"}</span>
-            <span class="detail">${tData("difficulty", route[config.fields.difficulty]) || "N/A"}</span>
+            <span class="detail">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+              ${distRedondeada} km
+            </span>
+            <span class="detail">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg>
+              ${route[config.fields.desnivel_pos] || "N/A"} m
+            </span>
+            <span class="detail">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+              ${tData("difficulty", route[config.fields.difficulty]) || "N/A"}
+            </span>
           </div>
         </div>
+        ` : ''}
 
       </div>
     </td>
