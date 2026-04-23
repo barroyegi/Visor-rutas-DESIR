@@ -102,10 +102,12 @@ export function renderTable(routes, containerId, allVariantGroups = new Map(), i
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
               ${distRedondeada} km
             </span>
+            ${(route[config.fields.desnivel_pos] !== null && route[config.fields.desnivel_pos] !== undefined && String(route[config.fields.desnivel_pos]).trim() !== "" && String(route[config.fields.desnivel_pos]).trim() !== "N/A") ? `
             <span class="detail">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5"></path><path d="m5 12 7-7 7 7"></path></svg>
-              ${route[config.fields.desnivel_pos] || "N/A"} m
+              ${route[config.fields.desnivel_pos]} m
             </span>
+            ` : ""}
             <span class="detail">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
               ${tData("difficulty", route[config.fields.difficulty]) || "N/A"}
@@ -249,7 +251,7 @@ export function initFilters(routes, onFilterChange) {
     // Filtro de dificultad
     const difficulty = difficultyFilter.value;
     if (difficulty !== "All") {
-      filtered = filtered.filter(r => r[config.fields.difficulty] === difficulty);
+      filtered = filtered.filter(r => String(r[config.fields.difficulty]) === difficulty);
     }
 
     // Filtro de matricula
