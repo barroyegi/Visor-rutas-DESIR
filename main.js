@@ -1,6 +1,6 @@
 import { initializeMap, renderStartPoints, filterStartPoints, zoomToGraphics, onExtentChange, selectRouteGroup } from './src/map.js';
 import { fetchRoutesList, fetchStartPoints } from './src/data.js';
-import { renderTable, initFilters, renderRouteDetails } from './src/ui.js';
+import { renderTable, initFilters, renderRouteDetails, setupMobileFilters } from './src/ui.js';
 import { initLanguageSwitcher } from './src/i18n.js';
 import { config } from './src/config.js';
 
@@ -95,6 +95,9 @@ async function init() {
 
     // 5. Initialize Filters
     initFilters(routes, async (newFilteredRoutes) => {
+        // Clear previous selection and UI
+        document.dispatchEvent(new CustomEvent("clearSelection"));
+        renderRouteDetails(null);
         isFiltering = true;
         filteredRoutes = newFilteredRoutes;
 
@@ -116,6 +119,7 @@ async function init() {
             updateDisplay();
         }
     });
+    setupMobileFilters();
 
     // 6. Listen for Map Extent Changes
     onExtentChange((newVisibleIds) => {

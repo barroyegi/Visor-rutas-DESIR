@@ -168,6 +168,8 @@ export function initFilters(routes, onFilterChange) {
   const searchInput = document.getElementById("search-input");
   const matriculaFilter = document.getElementById("matricula-filter");
   const resetFiltersBtn = document.getElementById("reset-filters-btn");
+  const applyMobileFiltersBtn = document.getElementById("apply-mobile-filters");
+  const filterModal = document.getElementById("filter-modal");
 
   const minGap = 2; // Minimum gap between sliders
 
@@ -307,6 +309,40 @@ export function initFilters(routes, onFilterChange) {
     moreFiltersDropdownBtn.classList.remove("active");
     moreFiltersDropdownContent.classList.remove("active");
   });
+
+  // Aplica el filtro global en el modal móvil
+  if (applyMobileFiltersBtn) {
+    applyMobileFiltersBtn.addEventListener("click", () => {
+      applyFilters();
+      // Cerrar modal
+      if (filterModal) {
+        filterModal.classList.remove("active");
+        document.body.style.overflow = ""; // Restaurar scroll
+      }
+    });
+  }
+
+  // Reset de filtros en el modal móvil
+  const resetMobileFiltersBtn = document.getElementById("reset-mobile-filters");
+  if (resetMobileFiltersBtn) {
+    resetMobileFiltersBtn.addEventListener("click", () => {
+      // Reutilizar la misma lógica de reset
+      searchInput.value = "";
+      difficultyFilter.value = "All";
+      matriculaFilter.value = "All";
+      sliderOne.value = 0;
+      sliderTwo.value = 100;
+      sliderMinLabel.textContent = "0 km";
+      sliderMaxLabel.textContent = "+ 100 km";
+      fillSlider();
+      applyFilters();
+      // Cerrar modal
+      if (filterModal) {
+        filterModal.classList.remove("active");
+        document.body.style.overflow = "";
+      }
+    });
+  }
 
   // Botón de reset de todos los filtros
   resetFiltersBtn.addEventListener("click", () => {
@@ -677,4 +713,49 @@ function showPrevPhoto() {
 function closePhotoModal() {
   document.getElementById("photo-modal").style.display = "none";
   document.onkeydown = null;
+}
+export function setupMobileFilters() {
+  const mobileBtn = document.getElementById("mobile-filter-btn");
+  const filterModal = document.getElementById("filter-modal");
+  const closeBtn = document.getElementById("close-filter-modal");
+  const placeholder = document.getElementById("mobile-filters-placeholder");
+  const originalContainer = document.querySelector(".filters");
+
+  if (!mobileBtn || !filterModal || !closeBtn || !placeholder || !originalContainer) return;
+
+  const openModal = () => {
+    // Move filters to modal placeholder
+    if (originalContainer.parentElement !== placeholder) {
+      placeholder.appendChild(originalContainer);
+    }
+    filterModal.classList.add("active");
+    document.body.style.overflow = "hidden"; // Prevent scrolling under modal
+  };
+
+  const closeModal = () => {
+    filterModal.classList.remove("active");
+    document.body.style.overflow = "";
+  };
+
+  mobileBtn.addEventListener("click", openModal);
+  closeBtn.addEventListener("click", closeModal);
+
+  // Close on outside click
+  window.addEventListener("click", (event) => {
+    if (event.target === filterModal) {
+      closeModal();
+    }
+  });
+
+  // Handle window resize to restore filters if switching to desktop
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 768 && originalContainer.parentElement === placeholder) {
+      const sidebarContent = document.querySelector(".sidebar-content");
+      const searchContainer = document.querySelector(".search-container");
+      if (sidebarContent && searchContainer) {
+        sidebarContent.insertBefore(originalContainer, searchContainer);
+      }
+      closeModal();
+    }
+  });
 }

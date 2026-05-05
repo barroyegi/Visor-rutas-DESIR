@@ -21,6 +21,8 @@ let map;
 let startPointsLayer;
 let startPointsLayerView;
 let startPointsLayerViewReady; // Promise that resolves when layerView is ready
+let allRoutesLayer;
+let allRoutesLayerView;
 let routeLayer;
 let cursorLayer; // Layer for the map cursor
 
@@ -213,6 +215,31 @@ export async function initializeMap(containerId) {
             startPointsLayerView = event.layerView;
             console.log("[Map] startPointsLayerView updated");
         }
+        if (event.layer === allRoutesLayer) {
+            allRoutesLayerView = event.layerView;
+            console.log("[Map] allRoutesLayerView updated");
+        }
+    });
+
+    // Layer for all routes (polylines) - initialized similarly to startPointsLayer
+    allRoutesLayer = new FeatureLayer({
+        source: [],
+        outFields: ["*"],
+        geometryType: "polyline",
+        spatialReference: { wkid: 4326 },
+        objectIdField: "_internalId",
+        fields: [
+            { name: "_internalId", type: "oid" },
+            { name: "OBJECTID", type: "integer" }
+        ],
+        renderer: {
+            type: "simple",
+            symbol: {
+                type: "simple-line",
+                color: [80, 80, 80, 0.8], // More visible background routes
+                width: 2.5
+            }
+        }
     });
 
     // Layer for Selected Route
@@ -235,11 +262,11 @@ export async function initializeMap(containerId) {
             if (map.basemap.referenceLayers) {
                 console.log(`[TopLayers] Moving to referenceLayers of ${map.basemap.title}`);
                 // Move them: Collection.add automatically removes them from any previous parent/collection
-                map.basemap.referenceLayers.addMany([routeLayer, cursorLayer, startPointsLayer]);
+                map.basemap.referenceLayers.addMany([allRoutesLayer, routeLayer, cursorLayer, startPointsLayer]);
             } else {
                 console.warn("[TopLayers] referenceLayers not found, adding to map top");
-                map.removeMany([routeLayer, cursorLayer, startPointsLayer]);
-                map.addMany([routeLayer, cursorLayer, startPointsLayer]);
+                map.removeMany([allRoutesLayer, routeLayer, cursorLayer, startPointsLayer]);
+                map.addMany([allRoutesLayer, routeLayer, cursorLayer, startPointsLayer]);
             }
         } catch (e) {
             console.error("[TopLayers] Error:", e);
@@ -290,6 +317,21 @@ export function highlightPoint(objectId) {
     removeHighlight();
 
 
+    const query = {
+        where: `routeId = ${objectId}`,
+        returnGeometry: true,
+        outFields: ["*"]
+    };
+
+    startPointsLayer.queryFeatures(query).then(result => {
+        if (result.features.length > 0) {
+            highlightedGraphic = result.features[0];
+            const symbol = highlightedGraphic.symbol.clone();
+            symbol.width = "40px";
+            symbol.height = "40px";
+            highlightedGraphic.symbol = symbol;
+        }
+    });
 }
 
 export function removeHighlight() {
@@ -304,39 +346,51 @@ export function removeHighlight() {
 
 export async function renderStartPoints(features) {
     console.log(`[Diagnostic] map.js: renderStartPoints received ${features ? features.length : 0} features to render.`);
-    const allGraphics = await startPointsLayer.queryFeatures();
+    const allPointGraphics = await startPointsLayer.queryFeatures();
+    const allRouteGraphics = await allRoutesLayer.queryFeatures();
 
-    const graphics = features.map(f => {
+    const pointGraphics = [];
+    const routeGraphics = [];
+
+    features.forEach(f => {
         let pointGeometry = f.geometry;
+        let polylineGeometry = null;
 
         if (f.geometry.type === "polyline") {
             pointGeometry = f.geometry.getPoint(0, 0);
+            polylineGeometry = f.geometry;
         }
 
         const attributes = { ...f.attributes };
-
-        // Robust ID lookup: try different standard field names
         const rawId = f.attributes.OBJECTID ?? f.attributes.objectid ?? f.attributes.FID ?? f.attributes.id;
         attributes.routeId = (rawId !== undefined && rawId !== null) ? Number(rawId) : NaN;
-        attributes.OBJECTID = attributes.routeId; // Explicitly map it so it's guaranteed to be passed to layer
+        attributes.OBJECTID = attributes.routeId;
 
-        if (isNaN(attributes.routeId)) {
-            console.error("[Render] Feature has no identifiable ID field:", f.attributes);
-        }
-
-        return new Graphic({
+        pointGraphics.push(new Graphic({
             geometry: pointGeometry,
             attributes: attributes
-        });
+        }));
+
+        if (polylineGeometry) {
+            routeGraphics.push(new Graphic({
+                geometry: polylineGeometry,
+                attributes: { _internalId: attributes._internalId, OBJECTID: attributes.OBJECTID }
+            }));
+        }
     });
 
-    // Atomic operation: delete existing and add new in a single applyEdits call
-    // This avoids the intermediate empty state that triggers onExtentChange with 0 features
-    const editsResult = await startPointsLayer.applyEdits({
-        deleteFeatures: allGraphics.features.length > 0 ? allGraphics.features : [],
-        addFeatures: graphics
-    });
-    console.log(`[Diagnostic] map.js: successfully applied edits. Added: ${editsResult.addFeatureResults.length}`);
+    // Update both layers
+    await Promise.all([
+        startPointsLayer.applyEdits({
+            deleteFeatures: allPointGraphics.features.length > 0 ? allPointGraphics.features : [],
+            addFeatures: pointGraphics
+        }),
+        allRoutesLayer.applyEdits({
+            deleteFeatures: allRouteGraphics.features.length > 0 ? allRouteGraphics.features : [],
+            addFeatures: routeGraphics
+        })
+    ]);
+    console.log(`[Diagnostic] map.js: successfully applied edits to points and routes.`);
 }
 
 function updateMapCursor(x, y) {
@@ -406,7 +460,7 @@ export async function selectRoute(objectId) {
         routeLayer.add(graphic);
         currentRouteGeometry = feature.geometry;
 
-        view.goTo(feature.geometry.extent.expand(1.5), { padding: { bottom: 300 } });
+        view.goTo(feature.geometry.extent.expand(2.5), { padding: { bottom: 300 } });
         document.dispatchEvent(new CustomEvent("routeSelected", { detail: feature.attributes }));
 
         const container = document.getElementById("chart-container");
@@ -557,19 +611,20 @@ export function zoomToGraphics(graphics) {
 }
 
 export async function filterStartPoints(objectIds) {
-    // Wait for layerView to be ready before applying filter
-    if (!startPointsLayerView) {
-        await reactiveUtils.whenOnce(() => !!startPointsLayerView);
+    // Wait for layerViews to be ready before applying filter
+    if (!startPointsLayerView || !allRoutesLayerView) {
+        await Promise.all([
+            reactiveUtils.whenOnce(() => !!startPointsLayerView),
+            reactiveUtils.whenOnce(() => !!allRoutesLayerView)
+        ]);
     }
 
-    if (objectIds === null) {
-        // Remove filter: show all features
-        startPointsLayerView.filter = null;
-    } else {
-        startPointsLayerView.filter = new FeatureFilter({
-            where: objectIds.length > 0 ? `OBJECTID IN (${objectIds.join(',')})` : `1=0`
-        });
-    }
+    const filterObj = objectIds === null ? null : new FeatureFilter({
+        where: objectIds.length > 0 ? `OBJECTID IN (${objectIds.join(',')})` : `1=0`
+    });
+
+    startPointsLayerView.filter = filterObj;
+    allRoutesLayerView.filter = filterObj;
 }
 
 export async function filterStartPointsByCodRuta(codRuta) {
@@ -754,7 +809,7 @@ export async function selectRouteGroup(selectedObjectId, allVariantAttributes) {
         const selectedFeature = currentGroupFeatures[effectiveSelectedId];
         if (!selectedFeature) return;
         currentRouteGeometry = selectedFeature.geometry;
-        view.goTo(groupExtent, { padding: { top: 40, left: 40, right: 40, bottom: 220 } });
+        view.goTo(groupExtent.expand(1.2), { padding: { top: 40, left: 40, right: 40, bottom: 220 } });
         document.getElementById("chart-container").classList.add("active");
 
         document.dispatchEvent(new CustomEvent("routeGroupSelected", {
@@ -771,7 +826,7 @@ export async function selectRouteGroup(selectedObjectId, allVariantAttributes) {
     } else {
         // Multiple variants, none selected: zoom to group, open panel without variant selected
         currentRouteGeometry = null;
-        view.goTo(groupExtent, { padding: { top: 40, left: 40, right: 40, bottom: 40 } });
+        view.goTo(groupExtent.expand(1.2), { padding: { top: 40, left: 40, right: 40, bottom: 40 } });
         document.dispatchEvent(new CustomEvent("routeGroupSelected", {
             detail: { selectedAttributes: null, allVariants: allVariantAttributes }
         }));

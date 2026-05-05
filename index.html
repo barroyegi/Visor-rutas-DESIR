@@ -4,19 +4,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Visor Rutas Senderismo</title>
+  <title>Buscador de senderos</title>
   <link rel="stylesheet" href="./style.css" />
   <link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/light/main.css" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&amp;display=swap"
+    rel="stylesheet">
 </head>
 
 <body>
   <div id="app">
     <header>
-      <h1 data-i18n="title">Visor de Rutas de Senderismo</h1>
-      <div class="lang-switcher">
-        <button class="lang-btn active" data-lang="es">ES</button>
-        <button class="lang-btn" data-lang="fr">FR</button>
-        <button class="lang-btn" data-lang="eus">EUS</button>
+      <h1 data-i18n="title">Buscador de senderos</h1>
+      <div class="header-right">
+        <div class="btn_idena">
+          <a
+            href="https://idena.navarra.es/navegar/?lang=es#ZXh0fGJhc2V8bWFwYWJhc2V8bGF5ZXJzfHV8Ly9pZGVuYS5uYXZhcnJhLmVzL29nYy93bXN8bnxJREVOQTpzZW5kZXJvc3xvfHZ8aHx1cnxmfHR8SURFTkF8aXxsY2F0LTEtMV4xXjQ5NDczNy4yODV8NDYzOTk4Ni45OTl8NzE4NDgxLjI4NXw0ODAyODAyLjk5OV4kMHxASXxKfEt8TF18MXwyfDN8QCQ0fDV8Nnw3fDh8SHw5fC0xfEF8LTF8QnwtNXxDfC01fER8RXxGfEddXV0=">
+            <img id="logo_idena" src="https://www.navarra.es/documents/4288576/5786431/logos_260x130_idena.png/">
+          </a>
+        </div>
+        <div class="lang-switcher">
+          <button class="lang-btn active" data-lang="es">ES</button>
+          <button class="lang-btn" data-lang="fr">FR</button>
+          <button class="lang-btn" data-lang="eus">EUS</button>
+        </div>
       </div>
     </header>
 
@@ -98,6 +109,31 @@
       <main id="viewDiv"></main>
       <div id="chart-container">
         <canvas id="elevation-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- Floating Filter Button (Mobile) -->
+    <button id="mobile-filter-btn" class="floating-btn" title="Filtros">
+      <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"
+        stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+      </svg>
+    </button>
+
+    <!-- Mobile Filter Modal -->
+    <div id="filter-modal" class="modal">
+      <div class="modal-content filter-modal-content">
+        <div class="filter-modal-header">
+          <h2 data-i18n="filters">Filtros</h2>
+          <span class="modal-close" id="close-filter-modal">&times;</span>
+        </div>
+        <div id="mobile-filters-placeholder">
+          <!-- Filters from sidebar will be moved here on mobile -->
+        </div>
+        <div class="filter-modal-footer">
+          <button id="reset-mobile-filters" class="reset-mobile-btn" data-i18n="resetFilters">Restablecer</button>
+          <button id="apply-mobile-filters" class="apply-filter-btn" data-i18n="apply_filters">Aplicar Filtros</button>
+        </div>
       </div>
     </div>
   </div>
