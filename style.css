@@ -817,6 +817,8 @@ header h1 {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.9rem;
+    display: table;
+    table-layout: fixed;
 }
 
 .routes-table th,
