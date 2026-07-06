@@ -112,11 +112,11 @@ export function renderTable(routes, containerId, allVariantGroups = new Map(), i
     <td colspan="4" class="route-card-cell">
       <div class="route-card">
         <div class="route-card-name">
-          ${route[config.fields.matricula] === "GR" ? '<div class="gr-symbol" title="Gran Recorrido (GR)"></div>' : ''}
-          ${route[config.fields.matricula] === "PR" ? '<div class="pr-symbol" title="Pequeño Recorrido (PR)"></div>' : ''}
-          ${route[config.fields.matricula] === "SL" ? '<div class="sl-symbol" title="Sendero Local (SL)"></div>' : ''}
+          ${route[config.fields.matricula] === "GR" ? `<div class="gr-symbol" title="${t("grTitle")}"></div>` : ''}
+          ${route[config.fields.matricula] === "PR" ? `<div class="pr-symbol" title="${t("prTitle")}"></div>` : ''}
+          ${route[config.fields.matricula] === "SL" ? `<div class="sl-symbol" title="${t("slTitle")}"></div>` : ''}
           ${escapeHtml(route[config.fields.name]) || "N/A"}
-          ${hasVariants ? `<span class="variants-badge" title="${variants.length} variantes">${variants.length}</span>` : ''}
+          ${hasVariants ? `<span class="variants-badge" title="${variants.length} ${t("variants").toLowerCase()}">${variants.length}</span>` : ''}
         </div>
 
         ${!hasVariants ? `
@@ -424,7 +424,7 @@ function resolveVariantDescription(attributes, langField) {
   if (hasValue(langBase)) return langBase;
 
   // 4. Spanish base (last resort)
-  return attributes[config.fields.description.es] || "No description available";
+  return attributes[config.fields.description.es] || t("noDescription");
 }
 
 export function renderRouteDetails(attributes, allVariants = []) {
@@ -463,7 +463,7 @@ export function renderRouteDetails(attributes, allVariants = []) {
   const descriptionField = escapeHtml(isGeneralView
     ? (headerAttributes[config.fields.description[getCurrentLang()]]
       || headerAttributes[config.fields.description.es]
-      || "No description available")
+      || t("noDescription"))
     : resolveVariantDescription(attributes, config.fields.description[getCurrentLang()]));
 
   const downloadUrl = sanitizeUrl(isGeneralView
@@ -485,6 +485,16 @@ export function renderRouteDetails(attributes, allVariants = []) {
 
     ${allVariants.length > 1 ? (() => {
       const getVName = (v) => (v[config.fields.variantName] || v[config.fields.name] || "").trim();
+      // Display-only override: the feature service only ever stores "Ruta completa"
+      // literally (no per-language field), so translate it for eus while leaving
+      // the raw value (used for grouping above) untouched for es/fr.
+      const displayVName = (v) => {
+        const raw = getVName(v);
+        if (getCurrentLang() === "eus" && raw.toLowerCase() === "ruta completa") {
+          return t("ruta_completa");
+        }
+        return raw;
+      };
       const sorted = [...allVariants].sort((a, b) => {
         return getVName(a).localeCompare(getVName(b), undefined, { numeric: true, sensitivity: 'base' });
       });
@@ -503,14 +513,14 @@ export function renderRouteDetails(attributes, allVariants = []) {
         <div class="variant-pills">
           ${items.map((v, i) => `
             <button class="variant-pill${v.OBJECTID === selectedOid ? ' active' : ''}" data-oid="${v.OBJECTID}">
-              ${escapeHtml(getVName(v)) || `Variante ${i + 1}`}
+              ${escapeHtml(displayVName(v)) || `Variante ${i + 1}`}
             </button>
           `).join('')}
         </div>
       </div>`;
-      return buildGroup("Ruta completa", rutaCompleta)
-        + buildGroup("Etapas", etapas)
-        + buildGroup("Variantes", variantes);
+      return buildGroup(t("ruta_completa"), rutaCompleta)
+        + buildGroup(t("stages"), etapas)
+        + buildGroup(t("variants"), variantes);
     })() : ''}
     
     ${!isGeneralView ? (() => {
@@ -609,7 +619,7 @@ export function renderRouteDetails(attributes, allVariants = []) {
           <img src="${escapeHtml(url)}"
                class="photo-thumb loading" 
                data-index="${index}" 
-               alt="Foto ${index + 1}" 
+               alt="${t("photo")} ${index + 1}"
                ${index < 3 ? 'fetchpriority="high"' : ''}
                decoding="async"
                onload="this.classList.remove('loading'); this.classList.add('loaded');">

@@ -20,11 +20,19 @@ let view;
 let map;
 let startPointsLayer;
 let startPointsLayerView;
-let startPointsLayerViewReady; // Promise that resolves when layerView is ready
 let allRoutesLayer;
 let allRoutesLayerView;
 let routeLayer;
 let cursorLayer; // Layer for the map cursor
+
+// startPointsLayerView/allRoutesLayerView are plain variables, not reactive
+// Accessor properties, so reactiveUtils.whenOnce/watch can't track their
+// assignment. Resolve these promises manually from the layerview-create
+// handler instead so callers can reliably await "layerView is ready".
+let resolveStartPointsLayerViewReady;
+const startPointsLayerViewReady = new Promise(resolve => { resolveStartPointsLayerViewReady = resolve; });
+let resolveAllRoutesLayerViewReady;
+const allRoutesLayerViewReady = new Promise(resolve => { resolveAllRoutesLayerViewReady = resolve; });
 
 let currentRouteGeometry = null;
 let currentRouteSamples = null;
@@ -233,9 +241,11 @@ export async function initializeMap(containerId) {
     reactiveUtils.on(() => view, "layerview-create", (event) => {
         if (event.layer === startPointsLayer) {
             startPointsLayerView = event.layerView;
+            resolveStartPointsLayerViewReady();
         }
         if (event.layer === allRoutesLayer) {
             allRoutesLayerView = event.layerView;
+            resolveAllRoutesLayerViewReady();
         }
     });
 
@@ -342,20 +352,27 @@ export function highlightPoint(objectId) {
     startPointsLayer.queryFeatures(query).then(result => {
         if (result.features.length > 0) {
             highlightedGraphic = result.features[0];
-            const symbol = highlightedGraphic.symbol.clone();
-            symbol.width = "40px";
-            symbol.height = "40px";
-            highlightedGraphic.symbol = symbol;
+            // Graphics from queryFeatures() don't carry a symbol (that's only
+            // assigned by the LayerView renderer), so build it explicitly
+            // instead of cloning a symbol that may be null.
+            highlightedGraphic.symbol = {
+                type: "picture-marker",
+                url: "/icons/hiking.svg",
+                width: "40px",
+                height: "40px"
+            };
         }
     });
 }
 
 export function removeHighlight() {
     if (highlightedGraphic) {
-        const symbol = highlightedGraphic.symbol.clone();
-        symbol.width = "30px";
-        symbol.height = "30px";
-        highlightedGraphic.symbol = symbol;
+        highlightedGraphic.symbol = {
+            type: "picture-marker",
+            url: "/icons/hiking.svg",
+            width: "30px",
+            height: "30px"
+        };
         highlightedGraphic = null;
     }
 }
@@ -462,10 +479,7 @@ export function zoomToGraphics(graphics) {
 export async function filterStartPoints(objectIds) {
     // Wait for layerViews to be ready before applying filter
     if (!startPointsLayerView || !allRoutesLayerView) {
-        await Promise.all([
-            reactiveUtils.whenOnce(() => !!startPointsLayerView),
-            reactiveUtils.whenOnce(() => !!allRoutesLayerView)
-        ]);
+        await Promise.all([startPointsLayerViewReady, allRoutesLayerViewReady]);
     }
 
     // Coerce to numbers so only valid IDs ever reach the SQL-like `where`
@@ -481,7 +495,7 @@ export async function filterStartPoints(objectIds) {
 
 export async function filterStartPointsByCodRuta(codRuta) {
     if (!startPointsLayerView) {
-        await reactiveUtils.whenOnce(() => !!startPointsLayerView);
+        await startPointsLayerViewReady;
     }
 
     if (!codRuta) {

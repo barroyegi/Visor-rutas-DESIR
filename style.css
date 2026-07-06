@@ -431,7 +431,7 @@ header h1 {
 }
 
 /* Show footer only when modal is active on mobile */
-@media (max-width: 768px) {
+@media (max-width: 1000px) {
     .filter-modal-content .filter-modal-footer {
         display: flex;
     }
@@ -986,7 +986,7 @@ header h1 {
     font-size: 18px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1000px) {
     .main-container {
         flex-direction: column;
         overflow: hidden;

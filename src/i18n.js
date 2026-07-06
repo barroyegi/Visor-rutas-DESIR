@@ -28,7 +28,16 @@ export const translations = {
             download: "Descargar GPX",
             viewInfoSheet: "Ver ficha del sendero",
             matricula: "Categoría",
-            ruta_completa: "Ruta completa"
+            ruta_completa: "Ruta completa",
+            filters: "Filtros",
+            apply_filters: "Aplicar Filtros",
+            stages: "Etapas",
+            variants: "Variantes",
+            grTitle: "Gran Recorrido (GR)",
+            prTitle: "Pequeño Recorrido (PR)",
+            slTitle: "Sendero Local (SL)",
+            noDescription: "Descripción no disponible",
+            photo: "Foto"
         },
         data: {
             difficulty: {
@@ -61,7 +70,16 @@ export const translations = {
             download: "Télécharger GPX",
             viewInfoSheet: "Voir la fiche du sentier",
             matricula: "Catégorie",
-            ruta_completa: "Route complete"
+            ruta_completa: "Route complète",
+            filters: "Filtres",
+            apply_filters: "Appliquer les filtres",
+            stages: "Étapes",
+            variants: "Variantes",
+            grTitle: "Grande Randonnée (GR)",
+            prTitle: "Petite Randonnée (PR)",
+            slTitle: "Sentier Local (SL)",
+            noDescription: "Description non disponible",
+            photo: "Photo"
         },
         data: {
             difficulty: {
@@ -94,7 +112,16 @@ export const translations = {
             download: "GPX Deskargatu",
             viewInfoSheet: "Ikusi bidearen fitxa",
             matricula: "Kategoria",
-            ruta_completa: "Ibilbide osoa"
+            ruta_completa: "Ibilbide osoa",
+            filters: "Iragazkiak",
+            apply_filters: "Iragazkiak Aplikatu",
+            stages: "Etapak",
+            variants: "Aldaerak",
+            grTitle: "Ibilbide Handia (GR)",
+            prTitle: "Ibilbide Txikia (PR)",
+            slTitle: "Tokiko Ibilbidea (SL)",
+            noDescription: "Deskribapenik ez dago eskuragarri",
+            photo: "Argazkia"
         },
         data: {
             difficulty: {
