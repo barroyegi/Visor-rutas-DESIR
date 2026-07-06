@@ -1,3 +1,4 @@
+import "@arcgis/core/assets/esri/themes/light/main.css";
 import { initializeMap, renderStartPoints, filterStartPoints, zoomToGraphics, onExtentChange, selectRouteGroup } from './src/map.js';
 import { fetchRoutesList, fetchStartPoints } from './src/data.js';
 import { renderTable, initFilters, renderRouteDetails, setupMobileFilters } from './src/ui.js';
@@ -20,18 +21,14 @@ function buildVariantGroups(routes) {
 
 
 async function init() {
-    console.log("Inicializando aplicacion...");
-
     // 1. Initialize Map
     const view = await initializeMap("viewDiv");
-    console.log("Mapa inicializado");
 
     // Initialize Language Switcher
     initLanguageSwitcher();
 
     // 2. Fetch Data
     const routes = await fetchRoutesList();
-    console.log("Rutas obtenidas:", routes);
 
     // Build variant groups (all routes, unfiltered)
     const allVariantGroups = buildVariantGroups(routes);
@@ -40,7 +37,6 @@ async function init() {
     const startPoints = await fetchStartPoints();
 
     await renderStartPoints(startPoints);
-    console.log("Start point definidos")
 
     let filteredRoutes = routes;
     let visibleIds = new Set(routes.map(r => String(r.OBJECTID)));
@@ -134,13 +130,11 @@ async function init() {
     let currentRoute = null;
     document.addEventListener("mapStartPointClicked", (e) => {
         const objectId = Number(e.detail);
-        console.log(`[MapClick] Start point clicked, OID: ${objectId}`);
         // Find the full variant group for this OBJECTID
         let selectedVariants = null;
         for (const [cod, variants] of allVariantGroups) {
             if (variants.find(v => Number(v.OBJECTID) === objectId)) {
                 selectedVariants = variants;
-                console.log(`[MapClick] Found group: ${cod} (${variants.length} variant(s))`);
                 break;
             }
         }
@@ -167,7 +161,6 @@ async function init() {
 
     // 7. Listen for language change
     document.addEventListener("languageChanged", () => {
-        console.log("Idioma cambiado, re-renderizando...");
         updateDisplay();
 
         // Only re-render details if the details container is currently active

@@ -84,7 +84,6 @@ export async function fetchStartPoints() {
         ];
 
         const results = await layer.queryFeatures(query);
-        console.log(`[Diagnostic] data.js: fetchStartPoints raw features received from ArcGIS Server: ${results.features.length}`);
 
         let invalidCount = 0;
 
@@ -124,7 +123,6 @@ export async function fetchStartPoints() {
             return null;
         }).filter(g => g !== null);
 
-        console.log(`[Diagnostic] data.js: fetchStartPoints successfully mapped ${graphics.length} graphics. Failed/No geometry: ${invalidCount}`);
         return graphics;
 
     } catch (error) {

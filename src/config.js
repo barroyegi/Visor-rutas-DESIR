@@ -8,8 +8,11 @@ export const config = {
     // Capa de puntos. En este caso es el mismo, y se generan los puntos con el punto inicial de cada ruta 
     startPointsLayerUrl: "https://services5.arcgis.com/FZTIUdZkataugPvd/arcgis/rest/services/Senderos_Nafarmendi_03032026/FeatureServer/1",
 
-    // API Key for ArcGIS (Caduca diciembre 2026)
-    apiKey: "***REMOVED-ARCGIS-API-KEY***",
+    // API Key for ArcGIS (Caduca diciembre 2026).
+    // Set VITE_ARCGIS_API_KEY in a local .env file (see .env.example) for
+    // development, and as an environment variable in your build/hosting
+    // platform for production. Never commit the real key to git.
+    apiKey: import.meta.env.VITE_ARCGIS_API_KEY,
 
     // Nombres de campos
     fields: {

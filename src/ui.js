@@ -1,6 +1,27 @@
 import { config } from "./config.js";
-import { selectRoute, selectRouteGroup, highlightPoint, removeHighlight, switchVariant, clearVariantSelection, filterStartPointsByCodRuta } from "./map.js";
+import { selectRouteGroup, highlightPoint, removeHighlight, switchVariant, clearVariantSelection, filterStartPointsByCodRuta } from "./map.js";
 import { t, tData, getCurrentLang } from "./i18n.js";
+
+// Escapes text/attribute values before inserting them into innerHTML.
+// Route data comes from an externally-editable ArcGIS layer, so it must be
+// treated as untrusted input to avoid stored XSS.
+function escapeHtml(value) {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Only allow http(s) URLs from route data to be used as href/src, blocking
+// javascript: URIs or other schemes an attacker could inject via the layer.
+function sanitizeUrl(url) {
+  if (!url) return "";
+  const trimmed = String(url).trim();
+  return /^https?:\/\//i.test(trimmed) ? trimmed : "";
+}
 
 function formatDuration(value) {
   if (!value) return "N/A";
@@ -20,8 +41,12 @@ function formatDuration(value) {
     return timeMatch ? `${timeMatch[1]} h` : value;
   }
 
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
+  // "time_one_way" is a time-only field (the date part is a fixed epoch like
+  // 1899-12-30); ArcGIS returns it as a UTC timestamp, so reading local
+  // hours/minutes would shift the displayed duration by the browser's
+  // timezone offset.
+  const hours = date.getUTCHours();
+  const minutes = date.getUTCMinutes();
 
   // Format as H:mm h
   return `${hours}:${minutes.toString().padStart(2, '0')} h`;
@@ -47,7 +72,6 @@ export function prefetchImage(url) {
   const img = new Image();
   img.src = url;
   prefetchedImages.add(url);
-  console.log(`[Prefetch] Started: ${url}`);
 }
 
 export function renderTable(routes, containerId, allVariantGroups = new Map(), isLoading = false) {
@@ -91,7 +115,7 @@ export function renderTable(routes, containerId, allVariantGroups = new Map(), i
           ${route[config.fields.matricula] === "GR" ? '<div class="gr-symbol" title="Gran Recorrido (GR)"></div>' : ''}
           ${route[config.fields.matricula] === "PR" ? '<div class="pr-symbol" title="Pequeño Recorrido (PR)"></div>' : ''}
           ${route[config.fields.matricula] === "SL" ? '<div class="sl-symbol" title="Sendero Local (SL)"></div>' : ''}
-          ${route[config.fields.name] || "N/A"}
+          ${escapeHtml(route[config.fields.name]) || "N/A"}
           ${hasVariants ? `<span class="variants-badge" title="${variants.length} variantes">${variants.length}</span>` : ''}
         </div>
 
@@ -110,7 +134,7 @@ export function renderTable(routes, containerId, allVariantGroups = new Map(), i
             ` : ""}
             <span class="detail">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-              ${tData("difficulty", route[config.fields.difficulty]) || "N/A"}
+              ${escapeHtml(tData("difficulty", route[config.fields.difficulty])) || "N/A"}
             </span>
           </div>
         </div>
@@ -432,17 +456,19 @@ export function renderRouteDetails(attributes, allVariants = []) {
   const imagesRaw = isGeneralView
     ? (headerAttributes[config.fields.images] || "")
     : (resolveVariantField(attributes, config.fields.images) || "");
-  const imageUrls = imagesRaw.split('|').map(s => s.trim()).filter(s => s.length > 0);
+  const imageUrls = imagesRaw.split('|')
+    .map(s => sanitizeUrl(s.trim()))
+    .filter(s => s.length > 0);
 
-  const descriptionField = isGeneralView
+  const descriptionField = escapeHtml(isGeneralView
     ? (headerAttributes[config.fields.description[getCurrentLang()]]
       || headerAttributes[config.fields.description.es]
       || "No description available")
-    : resolveVariantDescription(attributes, config.fields.description[getCurrentLang()]);
+    : resolveVariantDescription(attributes, config.fields.description[getCurrentLang()]));
 
-  const downloadUrl = isGeneralView
+  const downloadUrl = sanitizeUrl(isGeneralView
     ? headerAttributes[config.fields.downloadUrl]
-    : resolveVariantField(attributes, config.fields.downloadUrl);
+    : resolveVariantField(attributes, config.fields.downloadUrl));
 
   const selectedOid = isGeneralView ? null : attributes.OBJECTID;
   const routeCode = isGeneralView
@@ -453,7 +479,7 @@ export function renderRouteDetails(attributes, allVariants = []) {
 
   contentDiv.innerHTML = `
     <div class="details-header">
-      <h3>${headerAttributes[config.fields.name]}</h3>
+      <h3>${escapeHtml(headerAttributes[config.fields.name])}</h3>
       <button class="close-details-btn" id="close-details-btn">&times;</button>
     </div>
 
@@ -477,7 +503,7 @@ export function renderRouteDetails(attributes, allVariants = []) {
         <div class="variant-pills">
           ${items.map((v, i) => `
             <button class="variant-pill${v.OBJECTID === selectedOid ? ' active' : ''}" data-oid="${v.OBJECTID}">
-              ${getVName(v) || `Variante ${i + 1}`}
+              ${escapeHtml(getVName(v)) || `Variante ${i + 1}`}
             </button>
           `).join('')}
         </div>
@@ -489,9 +515,9 @@ export function renderRouteDetails(attributes, allVariants = []) {
     
     ${!isGeneralView ? (() => {
       const distVal = formatDistance(attributes[config.fields.distance]);
-      const elevVal = attributes[config.fields.elevation];
-      const diffVal = tData("difficulty", attributes[config.fields.difficulty]);
-      const durVal = formatDuration(attributes[config.fields.duration]);
+      const elevVal = escapeHtml(attributes[config.fields.elevation]);
+      const diffVal = escapeHtml(tData("difficulty", attributes[config.fields.difficulty]));
+      const durVal = escapeHtml(formatDuration(attributes[config.fields.duration]));
 
       const isValid = (v) => v !== null && v !== undefined && String(v).trim() !== "" && String(v).trim() !== "N/A";
 
@@ -546,7 +572,7 @@ export function renderRouteDetails(attributes, allVariants = []) {
     
     ${downloadUrl ? `
       <div class="download-container">
-        <a href="${downloadUrl}" download class="download-route-btn">
+        <a href="${escapeHtml(downloadUrl)}" download class="download-route-btn">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
@@ -559,7 +585,7 @@ export function renderRouteDetails(attributes, allVariants = []) {
 
     ${routeCode ? `
       <div class="info-sheet-container">
-        <a href="https://senderos.nafarmendi.org/Ruta/ver/${routeCode}" target="_blank" class="info-sheet-btn">
+        <a href="https://senderos.nafarmendi.org/Ruta/ver/${encodeURIComponent(routeCode)}" target="_blank" class="info-sheet-btn">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
             <polyline points="14 2 14 8 20 8"></polyline>
@@ -580,7 +606,7 @@ export function renderRouteDetails(attributes, allVariants = []) {
       <h4>${t("photos")}</h4>
       <div class="photos-grid">
         ${imageUrls.map((url, index) => `
-          <img src="${url}" 
+          <img src="${escapeHtml(url)}"
                class="photo-thumb loading" 
                data-index="${index}" 
                alt="Foto ${index + 1}" 

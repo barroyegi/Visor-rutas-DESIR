@@ -117,9 +117,19 @@ export async function initializeMap(containerId) {
         }
     });
 
-    // Cursor pointer al pasar por startPointsLayer
-    view.on("pointer-move", async evt => {
+    // Cursor pointer al pasar por startPointsLayer.
+    // Throttled to one update per animation frame (mousemove/hitTest fire far
+    // more often than the screen redraws), and guarded with a token so a
+    // slower, stale hitTest can't overwrite the result of a more recent move.
+    let pointerMoveToken = 0;
+    let pointerMoveRafScheduled = false;
+    let latestPointerMoveEvent = null;
+
+    const handlePointerMove = async (evt) => {
+        const token = ++pointerMoveToken;
         const hit = await view.hitTest(evt, { include: [startPointsLayer] });
+        if (token !== pointerMoveToken) return; // superseded by a newer move
+
         const graphic = hit.results.filter(r => r.graphic.layer === startPointsLayer)[0]?.graphic;
 
         if (graphic) {
@@ -154,6 +164,16 @@ export async function initializeMap(containerId) {
                 }
             }
         }
+    };
+
+    view.on("pointer-move", evt => {
+        latestPointerMoveEvent = evt;
+        if (pointerMoveRafScheduled) return;
+        pointerMoveRafScheduled = true;
+        requestAnimationFrame(() => {
+            pointerMoveRafScheduled = false;
+            handlePointerMove(latestPointerMoveEvent);
+        });
     });
 
     // Layer for Start Points (FeatureLayer for clustering support)
@@ -213,11 +233,9 @@ export async function initializeMap(containerId) {
     reactiveUtils.on(() => view, "layerview-create", (event) => {
         if (event.layer === startPointsLayer) {
             startPointsLayerView = event.layerView;
-            console.log("[Map] startPointsLayerView updated");
         }
         if (event.layer === allRoutesLayer) {
             allRoutesLayerView = event.layerView;
-            console.log("[Map] allRoutesLayerView updated");
         }
     });
 
@@ -252,7 +270,6 @@ export async function initializeMap(containerId) {
         try {
             // Wait for basemap to be resolved and loaded
             if (typeof map.basemap === "string") {
-                console.log(`[TopLayers] Waiting for basemap string "${map.basemap}" to resolve...`);
                 await reactiveUtils.whenOnce(() => map.basemap && typeof map.basemap !== "string");
             }
             if (!map.basemap.loaded) {
@@ -260,7 +277,6 @@ export async function initializeMap(containerId) {
             }
 
             if (map.basemap.referenceLayers) {
-                console.log(`[TopLayers] Moving to referenceLayers of ${map.basemap.title}`);
                 // Move them: Collection.add automatically removes them from any previous parent/collection
                 map.basemap.referenceLayers.addMany([allRoutesLayer, routeLayer, cursorLayer, startPointsLayer]);
             } else {
@@ -345,7 +361,6 @@ export function removeHighlight() {
 }
 
 export async function renderStartPoints(features) {
-    console.log(`[Diagnostic] map.js: renderStartPoints received ${features ? features.length : 0} features to render.`);
     const allPointGraphics = await startPointsLayer.queryFeatures();
     const allRouteGraphics = await allRoutesLayer.queryFeatures();
 
@@ -390,7 +405,6 @@ export async function renderStartPoints(features) {
             addFeatures: routeGraphics
         })
     ]);
-    console.log(`[Diagnostic] map.js: successfully applied edits to points and routes.`);
 }
 
 function updateMapCursor(x, y) {
@@ -439,171 +453,6 @@ function findNearestSample(point) {
 }
 
 
-export async function selectRoute(objectId) {
-
-    const feature = await fetchRouteGeometry(objectId);
-
-    if (feature) {
-        routeLayer.removeAll();
-        cursorLayer.removeAll();
-
-        const graphic = new Graphic({
-            geometry: feature.geometry,
-            symbol: {
-                type: "simple-line",
-                color: [0, 0, 255],
-                width: 3
-            },
-            attributes: feature.attributes
-        });
-
-        routeLayer.add(graphic);
-        currentRouteGeometry = feature.geometry;
-
-        view.goTo(feature.geometry.extent.expand(2.5), { padding: { bottom: 300 } });
-        document.dispatchEvent(new CustomEvent("routeSelected", { detail: feature.attributes }));
-
-        const container = document.getElementById("chart-container");
-        container.classList.add("active");
-
-        try {
-            let samples = [];
-            const polyline = feature.geometry;
-
-            if (polyline && polyline.hasZ) {
-                console.log(`[Elevation Profile] Source: Geometry Z/M values for route OID: ${objectId}`);
-                let cumulativeDistance = 0;
-                let lastVertex = null;
-
-                for (let p = 0; p < polyline.paths.length; p++) {
-                    const path = polyline.paths[p];
-                    for (let i = 0; i < path.length; i++) {
-                        const vertex = path[i];
-                        const x = vertex[0];
-                        const y = vertex[1];
-                        const z = vertex[2];
-                        const m = (polyline.hasM && vertex.length > 3) ? vertex[3] : null;
-
-                        if (i > 0) {
-                            if (m !== null && m !== undefined && m !== -1) {
-                                // Use M value if available and valid
-                                cumulativeDistance = m;
-                            } else {
-                                // Calculate geodesic distance if M is missing or invalid
-                                const segment = {
-                                    type: "polyline",
-                                    paths: [[path[i - 1], vertex]],
-                                    spatialReference: polyline.spatialReference
-                                };
-                                cumulativeDistance += geometryEngine.geodesicLength(segment, "meters");
-                            }
-                        } else if (p > 0 && lastVertex) {
-                            // Link paths for multipart geometries
-                            const gapSegment = {
-                                type: "polyline",
-                                paths: [[lastVertex, vertex]],
-                                spatialReference: polyline.spatialReference
-                            };
-                            cumulativeDistance += geometryEngine.geodesicLength(gapSegment, "meters");
-                        }
-
-                        samples.push({
-                            x: x,
-                            y: y,
-                            elevation: z,
-                            distance: cumulativeDistance / 1000 // KM
-                        });
-                        lastVertex = vertex;
-                    }
-                }
-            }
-
-            // Fallback to elevation_profile attribute ONLY if geometry didn't provide points
-            if (samples.length === 0) {
-                const profileJson = feature.attributes[config.fields.elevationProfile];
-                if (profileJson) {
-                    console.log(`[Elevation Profile] Source: 'elevation_profile' attribute field (JSON) for route OID: ${objectId}`);
-                    const profileData = JSON.parse(profileJson);
-                    const path = polyline.paths[0];
-
-                    let vertexDistances = [0];
-                    let currentTotal = 0;
-                    for (let i = 1; i < path.length; i++) {
-                        const segment = {
-                            type: "polyline",
-                            paths: [[path[i - 1], path[i]]],
-                            spatialReference: polyline.spatialReference
-                        };
-                        currentTotal += geometryEngine.geodesicLength(segment, "meters");
-                        vertexDistances.push(currentTotal / 1000);
-                    }
-
-                    for (let i = 0; i < profileData.length; i++) {
-                        const profileDist = profileData[i][0];
-                        const elevation = profileData[i][1];
-                        let x = path[0][0];
-                        let y = path[0][1];
-                        let found = false;
-
-                        for (let j = 0; j < vertexDistances.length - 1; j++) {
-                            if (profileDist >= vertexDistances[j] && profileDist <= vertexDistances[j + 1]) {
-                                const ratio = (profileDist - vertexDistances[j]) / (vertexDistances[j + 1] - vertexDistances[j]);
-                                x = path[j][0] + (path[j + 1][0] - path[j][0]) * ratio;
-                                y = path[j][1] + (path[j + 1][1] - path[j][1]) * ratio;
-                                found = true;
-                                break;
-                            }
-                        }
-
-                        if (!found && profileDist > vertexDistances[vertexDistances.length - 1]) {
-                            x = path[path.length - 1][0];
-                            y = path[path.length - 1][1];
-                        }
-
-                        samples.push({ x, y, distance: profileDist, elevation });
-                    }
-                }
-            }
-
-            if (samples.length === 0) {
-                console.log(`[Elevation Profile] Source: Ground Elevation Query (API) for route OID: ${objectId}`);
-                const elevationResult = await map.ground.queryElevation(feature.geometry);
-                const paths = elevationResult.geometry.paths[0];
-
-                let cumulativeDistance = 0; // in meters
-                for (let i = 0; i < paths.length; i++) {
-                    const point = paths[i];
-                    if (i > 0) {
-                        const segment = {
-                            type: "polyline",
-                            paths: [[paths[i - 1], point]],
-                            spatialReference: elevationResult.geometry.spatialReference
-                        };
-                        const segmentLength = geometryEngine.geodesicLength(segment, "meters");
-                        cumulativeDistance += segmentLength;
-                    }
-
-                    samples.push({
-                        x: point[0],
-                        y: point[1],
-                        elevation: point[2],
-                        distance: cumulativeDistance / 1000 // Convert to km
-                    });
-                }
-            }
-
-            currentRouteSamples = samples;
-            const distances = samples.map(s => s.distance);
-            const elevations = samples.map(s => s.elevation);
-
-            updateChartData(distances, elevations);
-
-        } catch (error) {
-            console.error("!!! Error processing elevation data !!!", error);
-        }
-    }
-}
-
 export function zoomToGraphics(graphics) {
     if (graphics && graphics.length > 0) {
         view.goTo(graphics);
@@ -619,8 +468,11 @@ export async function filterStartPoints(objectIds) {
         ]);
     }
 
-    const filterObj = objectIds === null ? null : new FeatureFilter({
-        where: objectIds.length > 0 ? `OBJECTID IN (${objectIds.join(',')})` : `1=0`
+    // Coerce to numbers so only valid IDs ever reach the SQL-like `where`
+    // clause sent to the ArcGIS REST service.
+    const validIds = objectIds === null ? null : objectIds.map(Number).filter(Number.isFinite);
+    const filterObj = validIds === null ? null : new FeatureFilter({
+        where: validIds.length > 0 ? `OBJECTID IN (${validIds.join(',')})` : `1=0`
     });
 
     startPointsLayerView.filter = filterObj;
@@ -636,9 +488,12 @@ export async function filterStartPointsByCodRuta(codRuta) {
         // Remove effect: show all features (that pass the main filter)
         startPointsLayerView.featureEffect = null;
     } else {
+        // Escape single quotes so codRuta can't break out of the string
+        // literal in the SQL-like `where` clause.
+        const escapedCodRuta = String(codRuta).replace(/'/g, "''");
         startPointsLayerView.featureEffect = {
             filter: {
-                where: `cod_ruta = '${codRuta}'`
+                where: `cod_ruta = '${escapedCodRuta}'`
             },
             excludedEffect: "opacity(0)"
         };
@@ -674,10 +529,8 @@ export function onExtentChange(callback) {
 async function buildSamplesFromFeature(feature) {
     const samples = [];
     const polyline = feature.geometry;
-    const objectId = feature.attributes.OBJECTID;
 
     if (polyline && polyline.hasZ) {
-        console.log(`[Elevation Profile] Source: Geometry Z/M values for route OID: ${objectId}`);
         let cumulativeDistance = 0;
         let lastVertex = null;
         for (let p = 0; p < polyline.paths.length; p++) {
@@ -706,7 +559,6 @@ async function buildSamplesFromFeature(feature) {
     if (samples.length === 0) {
         const profileJson = feature.attributes[config.fields.elevationProfile];
         if (profileJson) {
-            console.log(`[Elevation Profile] Source: 'elevation_profile' attribute for route OID: ${objectId}`);
             const profileData = JSON.parse(profileJson);
             const path = polyline.paths[0];
             let vertexDistances = [0], currentTotal = 0;
@@ -735,7 +587,6 @@ async function buildSamplesFromFeature(feature) {
     }
 
     if (samples.length === 0) {
-        console.log(`[Elevation Profile] Source: Ground Elevation Query (API) for route OID: ${objectId}`);
         const elevationResult = await map.ground.queryElevation(feature.geometry);
         const paths = elevationResult.geometry.paths[0];
         let cumulativeDistance = 0;

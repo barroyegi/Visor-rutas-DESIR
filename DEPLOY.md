@@ -16,6 +16,7 @@ Este proyecto es una aplicación web independiente (Frontend) construida con **V
    ```bash
    npm install
    ```
+4. Copiar `.env.example` a `.env` y rellenar `VITE_ARCGIS_API_KEY` con tu API Key de ArcGIS. Este archivo no debe subirse nunca a git (ya está en `.gitignore`).
 
 ## Configuración de Datos (ArcGIS Online)
 
@@ -41,7 +42,7 @@ Edita el archivo `src/config.js`:
 2. **`startPointsLayerUrl`**:
    - Si tienes una capa separada de puntos de inicio, pega su URL.
    - Si no, usa la misma URL que `routesLayerUrl` (la app intentará extraer los puntos).
-3. **`apiKey`**: Pega tu API Key de ArcGIS si es necesaria.
+3. **`apiKey`**: Se lee de la variable de entorno `VITE_ARCGIS_API_KEY` (ver paso 4 de Instalación). No la pegues directamente en `src/config.js`, ya que ese archivo se sube a git.
 4. **`fields`**: Ajusta el mapeo de nombres de campos si tus campos se llaman diferente (ej. `NOMBRE_RUTA` en lugar de `Name`).
 
 ## Ejecución en Desarrollo
@@ -55,7 +56,8 @@ Abre la URL que aparece en la terminal (normalmente `http://localhost:5173`).
 
 ## Despliegue en Producción
 
-1. Generar los archivos estáticos:
+1. Asegúrate de que `VITE_ARCGIS_API_KEY` esté definida en el entorno donde se ejecuta el build (archivo `.env` local, o la configuración de variables de entorno de Netlify/Vercel/GitHub Actions, etc.). Vite la incrusta en el bundle durante el `build`, no en tiempo de ejecución.
+2. Generar los archivos estáticos:
    ```bash
    npm run build
    ```
