@@ -193,9 +193,26 @@ export function renderTable(routes, containerId, allVariantGroups = new Map(), i
 
     const card = tr.querySelector(".route-card");
 
-    card.addEventListener("click", () => {
-      selectRouteGroup(route.OBJECTID, variants);
+    // Make the card operable and announced like a button for keyboard and
+    // screen-reader users (it is a div, not a native <button>).
+    card.setAttribute("role", "button");
+    card.setAttribute("tabindex", "0");
+    const routeName = route[config.fields.name] || "";
+    card.setAttribute("aria-label", `${t("routeCardLabel")}: ${routeName}`.trim());
+
+    const activateCard = () => selectRouteGroup(route.OBJECTID, variants);
+
+    card.addEventListener("click", activateCard);
+
+    card.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        activateCard();
+      }
     });
+
+    card.addEventListener("focus", () => highlightPoint(route.OBJECTID));
+    card.addEventListener("blur", () => removeHighlight());
 
     card.addEventListener("mouseenter", () => {
       highlightPoint(route.OBJECTID);
@@ -797,6 +814,16 @@ export function closeRouteDetails() {
 let currentImages = [];
 let currentImageIndex = 0;
 
+// Keydown handler for the photo modal. Kept as a named reference so it can be
+// added on open and removed on close via addEventListener/removeEventListener,
+// instead of clobbering the global document.onkeydown (which would wipe out any
+// other keyboard handler on the page).
+function onModalKeydown(e) {
+  if (e.key === "ArrowLeft") showPrevPhoto();
+  else if (e.key === "ArrowRight") showNextPhoto();
+  else if (e.key === "Escape") closePhotoModal();
+}
+
 function openPhotoModal(images, index) {
   currentImages = images;
   currentImageIndex = index;
@@ -828,14 +855,8 @@ function openPhotoModal(images, index) {
     showNextPhoto();
   };
 
-  // Keyboard navigation
-  document.onkeydown = (e) => {
-    if (modal.style.display === "block") {
-      if (e.key === "ArrowLeft") showPrevPhoto();
-      if (e.key === "ArrowRight") showNextPhoto();
-      if (e.key === "Escape") closePhotoModal();
-    }
-  };
+  // Keyboard navigation (removed again in closePhotoModal)
+  document.addEventListener("keydown", onModalKeydown);
 }
 
 function updateModalImage() {
@@ -858,7 +879,7 @@ function showPrevPhoto() {
 
 function closePhotoModal() {
   document.getElementById("photo-modal").style.display = "none";
-  document.onkeydown = null;
+  document.removeEventListener("keydown", onModalKeydown);
 }
 export function setupMobileFilters() {
   const mobileBtn = document.getElementById("mobile-filter-btn");

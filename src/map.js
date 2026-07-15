@@ -15,6 +15,7 @@ import { config } from "./config.js";
 import { fetchRouteGeometries } from "./data.js";
 import { initChart, updateChartData, highlightChartPoint, clearChart } from "./chart.js";
 import { prefetchImage } from "./ui.js";
+import { t } from "./i18n.js";
 
 let view;
 let map;
@@ -104,7 +105,7 @@ export async function initializeMap(containerId) {
     // Search Widget
     const searchWidget = new Search({
         view: view,
-        allPlaceholder: "Buscar lugar...",
+        allPlaceholder: t("mapSearchPlaceholder"),
         popupEnabled: false,
         includeDefaultSources: true
     });
@@ -112,6 +113,11 @@ export async function initializeMap(containerId) {
     view.ui.add(searchWidget, {
         position: "top-right",
         index: 0
+    });
+
+    // Keep the search placeholder in sync with the active language.
+    document.addEventListener("languageChanged", () => {
+        searchWidget.allPlaceholder = t("mapSearchPlaceholder");
     });
 
     // Inicializar el gráfico
@@ -515,21 +521,32 @@ export async function filterStartPointsByCodRuta(codRuta) {
 }
 
 export function onExtentChange(callback) {
-    reactiveUtils.watch(() => view.stationary, async (stationary) => {
-        if (stationary && view.extent) {
-            const query = startPointsLayer.createQuery();
-            query.geometry = view.extent;
-            query.returnGeometry = false;
-            query.outFields = ["*"];
-            query.where = "1=1";
+    let debounceTimer = null;
 
-            try {
-                const results = await startPointsLayer.queryFeatures(query);
-                const visibleIds = results.features.map(f => f.attributes.OBJECTID || f.attributes.routeId);
-                callback(visibleIds);
-            } catch (error) {
-                console.error("Error querying visible features:", error);
-            }
+    const runExtentQuery = async () => {
+        if (!view.extent) return;
+        const query = startPointsLayer.createQuery();
+        query.geometry = view.extent;
+        query.returnGeometry = false;
+        query.outFields = ["*"];
+        query.where = "1=1";
+
+        try {
+            const results = await startPointsLayer.queryFeatures(query);
+            const visibleIds = results.features.map(f => f.attributes.OBJECTID || f.attributes.routeId);
+            callback(visibleIds);
+        } catch (error) {
+            console.error("Error querying visible features:", error);
+        }
+    };
+
+    reactiveUtils.watch(() => view.stationary, (stationary) => {
+        // A quick pan can toggle stationary true→false→true in rapid
+        // succession; debounce so only the final resting extent triggers a
+        // query to the ArcGIS service instead of every intermediate stop.
+        if (debounceTimer) clearTimeout(debounceTimer);
+        if (stationary) {
+            debounceTimer = setTimeout(runExtentQuery, 250);
         }
     });
 }

@@ -46,7 +46,12 @@ export const translations = {
             diff_2: "Moderada",
             diff_3: "Difícil",
             diff_4: "Muy difícil",
-            themeToggle: "Cambiar tema claro/oscuro"
+            themeToggle: "Cambiar tema claro/oscuro",
+            chartDistance: "Distancia (km)",
+            chartElevation: "Altitud (m)",
+            mapSearchPlaceholder: "Buscar lugar...",
+            routeCardLabel: "Ver detalles de la ruta",
+            elevationProfile: "Perfil de altitud"
         },
         data: {
             difficulty: {
@@ -101,7 +106,12 @@ export const translations = {
             diff_2: "Modérée",
             diff_3: "Difficile",
             diff_4: "Très difficile",
-            themeToggle: "Basculer le thème clair/sombre"
+            themeToggle: "Basculer le thème clair/sombre",
+            chartDistance: "Distance (km)",
+            chartElevation: "Altitude (m)",
+            mapSearchPlaceholder: "Rechercher un lieu...",
+            routeCardLabel: "Voir les détails de l'itinéraire",
+            elevationProfile: "Profil d'altitude"
         },
         data: {
             difficulty: {
@@ -135,7 +145,7 @@ export const translations = {
             sliderMax: "+ 100 km",
             searchPlaceholder: "Bilatu izenaren arabera...",
             resetFilters: "Garbitu",
-            download: "GPX Deskargatu",
+            download: "GPXa Deskargatu",
             viewInfoSheet: "Ikusi bidearen fitxa",
             matricula: "Kategoria",
             ruta_completa: "Ibilbide osoa",
@@ -156,7 +166,12 @@ export const translations = {
             diff_2: "Ertaina",
             diff_3: "Zaila",
             diff_4: "Oso zaila",
-            themeToggle: "Gai argia/iluna aldatu"
+            themeToggle: "Gai argia/iluna aldatu",
+            chartDistance: "Distantzia (km)",
+            chartElevation: "Altituera (m)",
+            mapSearchPlaceholder: "Bilatu lekua...",
+            routeCardLabel: "Ikusi ibilbidearen xehetasunak",
+            elevationProfile: "Altuera-profila"
         },
         data: {
             difficulty: {

@@ -21,6 +21,7 @@ function initTheme() {
             const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
             root.setAttribute("data-theme", next);
             localStorage.setItem("theme", next);
+            document.dispatchEvent(new CustomEvent("themeChanged", { detail: { theme: next } }));
         });
     }
 }

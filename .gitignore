@@ -15,6 +15,9 @@ dist-ssr
 # Environment variables (contains secrets, e.g. VITE_ARCGIS_API_KEY)
 .env
 
+# Claude AI
+.claude
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -25,3 +28,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+
