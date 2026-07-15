@@ -12,7 +12,7 @@ import Search from "@arcgis/core/widgets/Search.js";
 import WebTileLayer from "@arcgis/core/layers/WebTileLayer.js";
 import Basemap from "@arcgis/core/Basemap.js";
 import { config } from "./config.js";
-import { fetchRouteGeometry } from "./data.js";
+import { fetchRouteGeometries } from "./data.js";
 import { initChart, updateChartData, highlightChartPoint, clearChart } from "./chart.js";
 import { prefetchImage } from "./ui.js";
 
@@ -620,6 +620,9 @@ async function buildSamplesFromFeature(feature) {
 // Stores all fetched features for the current group, keyed by OBJECTID
 let currentGroupFeatures = {};
 
+// Cache de samples de elevación por OBJECTID para no recalcular al cambiar de variante
+let samplesCache = {};
+
 const ACTIVE_SYMBOL = { type: "simple-line", color: [0, 0, 255], width: 3, style: "solid" };
 const DIM_SYMBOL = { type: "simple-line", color: [150, 150, 200], width: 2, style: "solid" };
 
@@ -629,19 +632,44 @@ const DIM_SYMBOL = { type: "simple-line", color: [150, 150, 200], width: 2, styl
  * @param {Array} allVariantAttributes - Array of route attribute objects for all variants.
  */
 export async function selectRouteGroup(selectedObjectId, allVariantAttributes) {
+    // Notify the UI right away so it can open the panel with a loading state
+    // instead of waiting for all geometries to arrive (this is what made the
+    // panel feel slow to open for groups with many routes).
+    document.dispatchEvent(new CustomEvent("routeGroupLoading", {
+        detail: { selectedObjectId, allVariants: allVariantAttributes }
+    }));
+
     routeLayer.removeAll();
     cursorLayer.removeAll();
     currentGroupFeatures = {};
+    samplesCache = {}; // Nuevo grupo: limpiar caché de samples
 
     const hasMultipleVariants = allVariantAttributes.length > 1;
     // If multiple variants and no explicit selection, open without selecting any
     const effectiveSelectedId = hasMultipleVariants ? null : selectedObjectId;
 
-    const fetched = await Promise.all(allVariantAttributes.map(attr => fetchRouteGeometry(attr.OBJECTID)));
+    // Fetch every variant's geometry in a single request instead of one per
+    // variant. On failure, tell the UI so it can show an error state.
+    let fetched;
+    try {
+        fetched = await fetchRouteGeometries(allVariantAttributes.map(attr => attr.OBJECTID));
+    } catch (error) {
+        console.error("!!! Error fetching route geometries !!!", error);
+        document.dispatchEvent(new CustomEvent("routeGroupError"));
+        return;
+    }
 
     for (const feature of fetched) {
         if (!feature) continue;
         currentGroupFeatures[feature.attributes.OBJECTID] = feature;
+    }
+
+    // No geometry came back at all: nothing to draw or zoom to, so surface an
+    // error rather than leaving the panel stuck on the loading spinner.
+    if (Object.keys(currentGroupFeatures).length === 0) {
+        console.error("!!! No route geometry returned for group !!!", allVariantAttributes);
+        document.dispatchEvent(new CustomEvent("routeGroupError"));
+        return;
     }
 
     // Add unselected features first
@@ -672,7 +700,11 @@ export async function selectRouteGroup(selectedObjectId, allVariantAttributes) {
 
     if (effectiveSelectedId !== null) {
         const selectedFeature = currentGroupFeatures[effectiveSelectedId];
-        if (!selectedFeature) return;
+        if (!selectedFeature) {
+            console.error("!!! Selected route geometry missing from group !!!", effectiveSelectedId);
+            document.dispatchEvent(new CustomEvent("routeGroupError"));
+            return;
+        }
         currentRouteGeometry = selectedFeature.geometry;
         view.goTo(groupExtent.expand(1.2), { padding: { top: 40, left: 40, right: 40, bottom: 220 } });
         document.getElementById("chart-container").classList.add("active");
@@ -682,7 +714,10 @@ export async function selectRouteGroup(selectedObjectId, allVariantAttributes) {
         }));
 
         try {
-            const samples = await buildSamplesFromFeature(selectedFeature);
+            if (!samplesCache[effectiveSelectedId]) {
+                samplesCache[effectiveSelectedId] = await buildSamplesFromFeature(selectedFeature);
+            }
+            const samples = samplesCache[effectiveSelectedId];
             currentRouteSamples = samples;
             updateChartData(samples.map(s => s.distance), samples.map(s => s.elevation));
         } catch (error) {
@@ -726,7 +761,10 @@ export async function switchVariant(newObjectId) {
     document.getElementById("chart-container").classList.add("active");
 
     try {
-        const samples = await buildSamplesFromFeature(selectedFeature);
+        if (!samplesCache[newObjectId]) {
+            samplesCache[newObjectId] = await buildSamplesFromFeature(selectedFeature);
+        }
+        const samples = samplesCache[newObjectId];
         currentRouteSamples = samples;
         updateChartData(samples.map(s => s.distance), samples.map(s => s.elevation));
     } catch (error) {

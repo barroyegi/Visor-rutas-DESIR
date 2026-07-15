@@ -27,6 +27,25 @@
           <button class="lang-btn" data-lang="fr">FR</button>
           <button class="lang-btn" data-lang="eus">EUS</button>
         </div>
+        <button id="theme-toggle" class="theme-toggle" title="Cambiar tema claro/oscuro"
+          data-i18n-title="themeToggle" aria-label="Cambiar tema claro/oscuro">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
       </div>
     </header>
 
@@ -68,10 +87,10 @@
                 <label><span data-i18n="difficulty">Dificultad</span>:
                   <select id="difficulty-filter">
                     <option value="All" data-i18n="all">Todas</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
+                    <option value="1" data-i18n="diff_1">Fácil</option>
+                    <option value="2" data-i18n="diff_2">Moderada</option>
+                    <option value="3" data-i18n="diff_3">Difícil</option>
+                    <option value="4" data-i18n="diff_4">Muy difícil</option>
                   </select>
                 </label>
                 <label><span data-i18n="matricula">Matrícula</span>:
@@ -96,7 +115,7 @@
           </div>
 
           <div class="list-container">
-            <h3 data-i18n="routesList">Listado de Rutas</h3>
+            <h3><span data-i18n="routesList">Listado de Rutas</span><span id="routes-count" class="routes-count"></span></h3>
             <div id="routes-list" data-i18n="loadingRoutes">Cargando rutas...</div>
           </div>
         </div>

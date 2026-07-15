@@ -1,9 +1,29 @@
 import "@arcgis/core/assets/esri/themes/light/main.css";
 import { initializeMap, renderStartPoints, filterStartPoints, zoomToGraphics, onExtentChange, selectRouteGroup } from './src/map.js';
 import { fetchRoutesList, fetchStartPoints } from './src/data.js';
-import { renderTable, initFilters, renderRouteDetails, setupMobileFilters } from './src/ui.js';
+import { renderTable, renderRoutesError, initFilters, renderRouteDetails, renderRouteDetailsLoading, renderRouteDetailsError, setupMobileFilters } from './src/ui.js';
 import { initLanguageSwitcher } from './src/i18n.js';
 import { config } from './src/config.js';
+
+/**
+ * Applies the saved (or system-preferred) colour theme and wires the toggle.
+ */
+function initTheme() {
+    const root = document.documentElement;
+    const stored = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const theme = stored || (prefersDark ? "dark" : "light");
+    root.setAttribute("data-theme", theme);
+
+    const toggle = document.getElementById("theme-toggle");
+    if (toggle) {
+        toggle.addEventListener("click", () => {
+            const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+            root.setAttribute("data-theme", next);
+            localStorage.setItem("theme", next);
+        });
+    }
+}
 
 /**
  * Groups routes by cod_ruta. Returns a Map: cod_ruta (string) → [route, ...]
@@ -21,6 +41,10 @@ function buildVariantGroups(routes) {
 
 
 async function init() {
+    // Apply theme and show the loading skeleton before anything slow runs.
+    initTheme();
+    renderTable([], "routes-list", new Map(), true);
+
     // 1. Initialize Map
     const view = await initializeMap("viewDiv");
 
@@ -28,7 +52,14 @@ async function init() {
     initLanguageSwitcher();
 
     // 2. Fetch Data
-    const routes = await fetchRoutesList();
+    let routes;
+    try {
+        routes = await fetchRoutesList();
+    } catch (error) {
+        console.error("Error fetching routes list:", error);
+        renderRoutesError("routes-list", () => location.reload());
+        return;
+    }
 
     // Build variant groups (all routes, unfiltered)
     const allVariantGroups = buildVariantGroups(routes);
@@ -147,12 +178,27 @@ async function init() {
         }
     });
 
-    // 7. Listen for route group selection (fires after selectRouteGroup completes)
+    // 7. Listen for route group loading/selection/error (fired by selectRouteGroup)
     let currentVariants = [];
+    let lastGroupSelection = null; // { objectId, variants } for retry
+
+    document.addEventListener("routeGroupLoading", (e) => {
+        // Remember what was clicked so the error state can offer a retry.
+        lastGroupSelection = { objectId: e.detail.selectedObjectId, variants: e.detail.allVariants };
+        // Show the panel with a spinner immediately, before geometry arrives.
+        renderRouteDetailsLoading();
+    });
+
     document.addEventListener("routeGroupSelected", (e) => {
         currentRoute = e.detail.selectedAttributes;
         currentVariants = e.detail.allVariants;
         renderRouteDetails(e.detail.selectedAttributes, e.detail.allVariants);
+    });
+
+    document.addEventListener("routeGroupError", () => {
+        renderRouteDetailsError(lastGroupSelection
+            ? () => selectRouteGroup(lastGroupSelection.objectId, lastGroupSelection.variants)
+            : null);
     });
 
     document.addEventListener("clearSelection", () => {

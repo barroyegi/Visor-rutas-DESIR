@@ -3,29 +3,7 @@ import Chart from 'chart.js/auto';
 let chartInstance = null;
 let onHoverCallback = null;
 
-// Function to get color based on elevation
-function getColorForElevation(elevation, minElevation, maxElevation) {
-    const normalized = (elevation - minElevation) / (maxElevation - minElevation);
 
-    // Gradient: green -> yellow -> orange -> red -> violet
-    if (normalized < 0.25) {
-        // Green to Yellow
-        const t = normalized / 0.25;
-        return `rgb(${Math.round(0 + 255 * t)}, ${Math.round(200 - 55 * t)}, 0)`;
-    } else if (normalized < 0.5) {
-        // Yellow to Orange
-        const t = (normalized - 0.25) / 0.25;
-        return `rgb(255, ${Math.round(145 - 80 * t)}, 0)`;
-    } else if (normalized < 0.75) {
-        // Orange to Red
-        const t = (normalized - 0.5) / 0.25;
-        return `rgb(255, ${Math.round(65 * (1 - t))}, 0)`;
-    } else {
-        // Red to Violet
-        const t = (normalized - 0.75) / 0.25;
-        return `rgb(${Math.round(255 - 105 * t)}, 0, ${Math.round(138 * t)})`;
-    }
-}
 
 // Custom plugin for vertical line crosshair with dot indicator
 const crosshairPlugin = {
@@ -208,9 +186,6 @@ export function updateChartData(distances, elevations) {
     // Set x-axis max to exact maximum distance
     const maxDistance = Math.max(...distances);
     chartInstance.options.scales.x.max = maxDistance;
-
-    chartInstance.options.scales.x.max = maxDistance;
-
 
     chartInstance.update();
 }

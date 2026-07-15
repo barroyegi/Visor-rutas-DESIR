@@ -719,6 +719,65 @@ header h1 {
     color: #666;
 }
 
+/* Loading / error states inside the details panel */
+.details-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    min-height: 220px;
+    padding: 2rem 1rem;
+    text-align: center;
+}
+
+.details-spinner {
+    width: 44px;
+    height: 44px;
+    border: 4px solid rgba(34, 115, 193, 0.2);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: details-spin 0.8s linear infinite;
+}
+
+@keyframes details-spin {
+    to { transform: rotate(360deg); }
+}
+
+.details-state-text {
+    color: #555;
+    font-size: 1rem;
+    margin: 0;
+}
+
+.details-error-icon {
+    color: #c0392b;
+    display: flex;
+}
+
+.details-retry-btn {
+    margin-top: 0.5rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.details-retry-btn:hover {
+    background-color: #1b5c9c;
+    transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .details-spinner {
+        animation-duration: 1.6s;
+    }
+}
+
 #viewDiv {
     flex: 1;
     background-color: #ddd;
@@ -1194,4 +1253,230 @@ header h1 {
     border-color: var(--primary-color);
     color: white;
     box-shadow: 0 2px 6px rgba(34, 115, 193, 0.3);
+}
+
+/* ===== Results counter ===== */
+.routes-count {
+    color: #888;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+/* ===== Route card hover polish ===== */
+.route-card {
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.route-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+    border-color: var(--primary-color);
+}
+
+/* ===== Difficulty colour dot ===== */
+.diff-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
+}
+
+.diff-dot-1 { background-color: #2ecc71; }
+.diff-dot-2 { background-color: #f1c40f; }
+.diff-dot-3 { background-color: #e67e22; }
+.diff-dot-4 { background-color: #e74c3c; }
+
+/* ===== Loading skeleton ===== */
+.routes-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.skeleton-card {
+    padding: 12px;
+    border: 1px solid #f1f1f1;
+    border-radius: 6px;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.06);
+}
+
+.skeleton-line,
+.skeleton-chip {
+    background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s linear infinite;
+    border-radius: 6px;
+}
+
+.skeleton-title {
+    height: 18px;
+    width: 70%;
+    margin-bottom: 12px;
+}
+
+.skeleton-chips {
+    display: flex;
+    gap: 8px;
+}
+
+.skeleton-chip {
+    height: 22px;
+    width: 64px;
+    border-radius: 12px;
+}
+
+@keyframes skeleton-shimmer {
+    to { background-position: -200% 0; }
+}
+
+/* ===== List error state ===== */
+.list-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.75rem;
+    padding: 2rem 1rem;
+    color: #555;
+}
+
+.list-error-icon {
+    color: #c0392b;
+    display: flex;
+}
+
+/* ===== Theme toggle ===== */
+.theme-toggle {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: white;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.28);
+}
+
+.theme-toggle .icon-sun { display: none; }
+.theme-toggle .icon-moon { display: block; }
+
+html[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+html[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton-line,
+    .skeleton-chip {
+        animation-duration: 3s;
+    }
+}
+
+/* ===================================================================
+   DARK MODE
+   Applied when the user (or their OS) prefers dark. Overrides only the
+   light surfaces; the header already uses the primary colour.
+   =================================================================== */
+html[data-theme="dark"] {
+    --bg-color: #12161b;
+    --text-color: #e6e9ee;
+    color-scheme: dark;
+}
+
+html[data-theme="dark"] body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+html[data-theme="dark"] .sidebar {
+    background-color: #1a1f26;
+    border-right-color: #2a323c;
+}
+
+html[data-theme="dark"] .search-container { border-bottom-color: #2a323c; }
+
+html[data-theme="dark"] #search-input,
+html[data-theme="dark"] .filter-dropdown-btn,
+html[data-theme="dark"] .filter-dropdown-content,
+html[data-theme="dark"] .filter-dropdown-content select {
+    background-color: #262d36;
+    border-color: #3a434f;
+    color: var(--text-color);
+}
+
+html[data-theme="dark"] .route-card,
+html[data-theme="dark"] .skeleton-card {
+    background-color: #222932;
+    border-color: #2f3945;
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme="dark"] .route-card-details .detail {
+    background-color: #2c3540;
+    color: #c7d0da;
+    border-color: #3a434f;
+}
+
+html[data-theme="dark"] .details-container {
+    background-color: #1a1f26;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
+}
+
+html[data-theme="dark"] .stat-item {
+    background-color: #222932;
+    border-color: #2f3945;
+}
+
+html[data-theme="dark"] .stat-icon { background: #2c3540; }
+html[data-theme="dark"] .stat-value { color: var(--text-color); }
+html[data-theme="dark"] .stat-label,
+html[data-theme="dark"] .routes-count,
+html[data-theme="dark"] .variant-label { color: #9aa4b0; }
+
+html[data-theme="dark"] .close-details-btn,
+html[data-theme="dark"] .list-state,
+html[data-theme="dark"] .details-state-text { color: #b8c0ca; }
+
+html[data-theme="dark"] h3,
+html[data-theme="dark"] h4 { color: var(--text-color); }
+
+html[data-theme="dark"] #chart-container {
+    background-color: rgba(20, 24, 30, 0.92);
+    border-top-color: #2a323c;
+}
+
+html[data-theme="dark"] .routes-table td { border-bottom-color: #2a323c; }
+
+html[data-theme="dark"] .info-sheet-btn { background-color: transparent; }
+
+html[data-theme="dark"] .variant-selector { background: #222932; }
+
+html[data-theme="dark"] .variant-pill {
+    background: #2c3540;
+    border-color: #3a434f;
+    color: #c7d0da;
+}
+
+html[data-theme="dark"] .variant-pill:hover { background: #313d4a; }
+
+html[data-theme="dark"] .variant-pill.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+html[data-theme="dark"] .filter-modal-content {
+    background-color: #1a1f26;
+    color: var(--text-color);
+}
+
+html[data-theme="dark"] .skeleton-line,
+html[data-theme="dark"] .skeleton-chip {
+    background: linear-gradient(110deg, #262d36 8%, #303945 18%, #262d36 33%);
+    background-size: 200% 100%;
 }

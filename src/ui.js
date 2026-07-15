@@ -74,14 +74,64 @@ export function prefetchImage(url) {
   prefetchedImages.add(url);
 }
 
+// Maps the numeric MIDE difficulty (1-4) to a severity class + translated label.
+function difficultyChip(value) {
+  const label = escapeHtml(tData("difficulty", value)) || "N/A";
+  const level = String(value).trim();
+  const dot = /^[1-4]$/.test(level) ? `<span class="diff-dot diff-dot-${level}"></span>` : "";
+  return `<span class="detail detail-difficulty">${dot}${label}</span>`;
+}
+
+// Updates the small "(N)" counter next to the "Listado de Rutas" heading.
+function updateRoutesCount(n) {
+  const el = document.getElementById("routes-count");
+  if (el) el.textContent = (typeof n === "number") ? ` (${n})` : "";
+}
+
+/**
+ * Shows an error state in the routes list with a retry action.
+ * @param {string} containerId
+ * @param {() => void} [onRetry]
+ */
+export function renderRoutesError(containerId, onRetry) {
+  const container = document.getElementById(containerId);
+  updateRoutesCount(null);
+  container.innerHTML = `
+    <div class="list-state">
+      <div class="list-error-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      </div>
+      <p>${t("listError")}</p>
+      ${onRetry ? `<button class="details-retry-btn" id="list-retry-btn">${t("retry")}</button>` : ""}
+    </div>
+  `;
+  if (onRetry) {
+    document.getElementById("list-retry-btn").addEventListener("click", () => onRetry());
+  }
+}
+
 export function renderTable(routes, containerId, allVariantGroups = new Map(), isLoading = false) {
   const container = document.getElementById(containerId);
   container.innerHTML = "";
 
   if (isLoading) {
-    container.innerHTML = `<p>${t("loadingRoutes")}</p>`;
+    // Skeleton placeholders instead of a bare "loading…" line.
+    updateRoutesCount(null);
+    container.innerHTML = `<div class="routes-skeleton">${
+      Array.from({ length: 6 }).map(() => `
+        <div class="skeleton-card">
+          <div class="skeleton-line skeleton-title"></div>
+          <div class="skeleton-chips">
+            <div class="skeleton-chip"></div>
+            <div class="skeleton-chip"></div>
+            <div class="skeleton-chip"></div>
+          </div>
+        </div>`).join("")
+    }</div>`;
     return;
   }
+
+  updateRoutesCount(routes.length);
 
   if (routes.length === 0) {
     container.innerHTML = `<p>${t("noRoutesFound")}</p>`;
@@ -132,10 +182,7 @@ export function renderTable(routes, containerId, allVariantGroups = new Map(), i
               ${route[config.fields.desnivel_pos]} m
             </span>
             ` : ""}
-            <span class="detail">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-              ${escapeHtml(tData("difficulty", route[config.fields.difficulty])) || "N/A"}
-            </span>
+            ${difficultyChip(route[config.fields.difficulty])}
           </div>
         </div>
         ` : ''}
@@ -425,6 +472,69 @@ function resolveVariantDescription(attributes, langField) {
 
   // 4. Spanish base (last resort)
   return attributes[config.fields.description.es] || t("noDescription");
+}
+
+/**
+ * Opens the details panel showing every element common to all states
+ * (active classes + a header with a close button) and returns the content div
+ * so loading/error/details renderers can fill in the body.
+ */
+function openDetailsPanel() {
+  const container = document.querySelector(".details-container");
+  const contentDiv = document.getElementById("route-details");
+  const overlay = document.querySelector(".sidebar-overlay");
+  const sidebar = document.querySelector(".sidebar");
+
+  container.classList.add("active");
+  overlay.classList.add("active");
+  sidebar.classList.add("details-open");
+
+  return contentDiv;
+}
+
+/**
+ * Opens the panel immediately with a loading spinner while route geometry is
+ * being fetched, so the click feels responsive even for groups with many routes.
+ */
+export function renderRouteDetailsLoading() {
+  const contentDiv = openDetailsPanel();
+  contentDiv.innerHTML = `
+    <div class="details-state">
+      <div class="details-spinner" role="status" aria-live="polite"></div>
+      <p class="details-state-text">${t("loadingRoute")}</p>
+    </div>
+  `;
+}
+
+/**
+ * Shows an error state in the panel with an optional retry action.
+ * @param {() => void} [onRetry] - invoked when the user clicks "retry".
+ */
+export function renderRouteDetailsError(onRetry) {
+  const contentDiv = openDetailsPanel();
+  contentDiv.innerHTML = `
+    <div class="details-header">
+      <h3></h3>
+      <button class="close-details-btn" id="close-details-btn">&times;</button>
+    </div>
+    <div class="details-state">
+      <div class="details-error-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      </div>
+      <p class="details-state-text">${t("routeError")}</p>
+      ${onRetry ? `<button class="details-retry-btn" id="details-retry-btn">${t("retry")}</button>` : ""}
+    </div>
+  `;
+
+  document.getElementById("close-details-btn").addEventListener("click", () => {
+    closeRouteDetails();
+  });
+
+  if (onRetry) {
+    document.getElementById("details-retry-btn").addEventListener("click", () => {
+      onRetry();
+    });
+  }
 }
 
 export function renderRouteDetails(attributes, allVariants = []) {

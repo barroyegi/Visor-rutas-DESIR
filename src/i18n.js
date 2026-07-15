@@ -37,13 +37,26 @@ export const translations = {
             prTitle: "Pequeño Recorrido (PR)",
             slTitle: "Sendero Local (SL)",
             noDescription: "Descripción no disponible",
-            photo: "Foto"
+            photo: "Foto",
+            loadingRoute: "Cargando ruta...",
+            routeError: "No se pudo cargar la ruta. Inténtalo de nuevo.",
+            retry: "Reintentar",
+            listError: "No se pudieron cargar las rutas.",
+            diff_1: "Fácil",
+            diff_2: "Moderada",
+            diff_3: "Difícil",
+            diff_4: "Muy difícil",
+            themeToggle: "Cambiar tema claro/oscuro"
         },
         data: {
             difficulty: {
                 "Fácil": "Fácil",
                 "Moderada": "Moderada",
-                "Difícil": "Difícil"
+                "Difícil": "Difícil",
+                "1": "Fácil",
+                "2": "Moderada",
+                "3": "Difícil",
+                "4": "Muy difícil"
             }
         }
     },
@@ -79,13 +92,26 @@ export const translations = {
             prTitle: "Petite Randonnée (PR)",
             slTitle: "Sentier Local (SL)",
             noDescription: "Description non disponible",
-            photo: "Photo"
+            photo: "Photo",
+            loadingRoute: "Chargement de l'itinéraire...",
+            routeError: "Impossible de charger l'itinéraire. Réessayez.",
+            retry: "Réessayer",
+            listError: "Impossible de charger les itinéraires.",
+            diff_1: "Facile",
+            diff_2: "Modérée",
+            diff_3: "Difficile",
+            diff_4: "Très difficile",
+            themeToggle: "Basculer le thème clair/sombre"
         },
         data: {
             difficulty: {
                 "Fácil": "Facile",
                 "Moderada": "Modérée",
-                "Difícil": "Difficile"
+                "Difícil": "Difficile",
+                "1": "Facile",
+                "2": "Modérée",
+                "3": "Difficile",
+                "4": "Très difficile"
             }
         }
     },
@@ -121,13 +147,26 @@ export const translations = {
             prTitle: "Ibilbide Txikia (PR)",
             slTitle: "Tokiko Ibilbidea (SL)",
             noDescription: "Deskribapenik ez dago eskuragarri",
-            photo: "Argazkia"
+            photo: "Argazkia",
+            loadingRoute: "Ibilbidea kargatzen...",
+            routeError: "Ezin izan da ibilbidea kargatu. Saiatu berriro.",
+            retry: "Saiatu berriro",
+            listError: "Ezin izan dira ibilbideak kargatu.",
+            diff_1: "Erraza",
+            diff_2: "Ertaina",
+            diff_3: "Zaila",
+            diff_4: "Oso zaila",
+            themeToggle: "Gai argia/iluna aldatu"
         },
         data: {
             difficulty: {
                 "Fácil": "Erraza",
                 "Moderada": "Ertaina",
-                "Difícil": "Zaila"
+                "Difícil": "Zaila",
+                "1": "Erraza",
+                "2": "Ertaina",
+                "3": "Zaila",
+                "4": "Oso zaila"
             }
         }
     }
