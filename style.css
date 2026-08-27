@@ -6,6 +6,10 @@
     --bg-color: #f4f4f4;
     --text-color: #333;
 
+    /* Ancho de la sidebar. El chart se alinea con el mapa usando esta misma
+       medida, si no quedan desalineados. */
+    --sidebar-w: clamp(320px, 32%, 460px);
+
     /* Neutral gray scale */
     --gray-50: #f9fafb;
     --gray-100: #f3f4f6;
@@ -61,6 +65,10 @@ body {
 }
 
 header {
+    /* Oculto a proposito. El markup y sus listeners (idioma, tema, enlace a
+       IDENA) siguen vivos: solo se oculta la barra, no se retira nada.
+       Cambiar a `flex` para volver a mostrarla. */
+    display: none;
     background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
     color: white;
     padding: 1rem;
@@ -69,7 +77,6 @@ header {
     padding-right: calc(1rem + env(safe-area-inset-right));
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
     z-index: 10;
-    display: flex;
     justify-content: space-between;
     align-items: center;
 }
@@ -132,7 +139,7 @@ header h1 {
 
 .sidebar {
     position: relative;
-    width: clamp(320px, 32%, 460px);
+    width: var(--sidebar-w);
     background-color: white;
     border-right: 1px solid var(--gray-300);
     display: flex;
@@ -148,6 +155,11 @@ header h1 {
     padding: 1rem;
     display: flex;
     flex-direction: column;
+}
+
+/* ===== #6 Bottom-sheet arrastrable (solo movil vertical) ===== */
+.sheet-handle {
+    display: none;
 }
 
 /* Block sidebar scroll when details are open */
@@ -752,19 +764,51 @@ header h1 {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Solo la X queda fija. Sin banda de fondo: la cabecera no ocupa alto y el
+   contenido se desplaza por debajo del boton. */
 .details-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
+    justify-content: flex-end;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    height: 0;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    /* Solo el boton es clicable, el resto de la franja no intercepta */
+    pointer-events: none;
+}
+
+.details-title {
+    /* Hueco a la derecha para que la X no se coma el final del nombre */
+    margin: 0 0 1rem;
+    padding-right: 44px;
 }
 
 .close-details-btn {
-    background: none;
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
     border: none;
+    border-radius: 50%;
+    /* Semitransparente: deja entrever el contenido que pasa por debajo */
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(4px);
+    box-shadow: var(--shadow-sm);
     font-size: var(--fs-2xl);
+    line-height: 1;
     cursor: pointer;
-    color: var(--gray-500);
+    color: var(--gray-600);
+    transition: background 0.2s, color 0.2s;
+}
+
+.close-details-btn:hover {
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--text-color);
 }
 
 /* Loading / error states inside the details panel */
@@ -963,7 +1007,9 @@ header h1 {
     position: absolute;
     bottom: 0;
     right: 0;
-    width: 70%;
+    /* Empieza donde acaba la sidebar, asi queda centrado sobre el mapa */
+    left: var(--sidebar-w);
+    width: auto;
     height: 200px;
     background-color: rgba(255, 255, 255, 0.9);
     z-index: 5;
@@ -975,6 +1021,45 @@ header h1 {
 #chart-container.active {
     display: block;
 }
+
+/* ===== #7 Perfil de altitud colapsable ===== */
+#chart-container {
+    transition: height 0.25s ease;
+}
+
+.chart-toggle {
+    position: absolute;
+    top: 6px;
+    right: 12px;
+    z-index: 6;
+    /* Solo en movil: en escritorio sobra sitio y no se ofrece replegar.
+       Se activa en la media query de <=1000px. */
+    display: none;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--radius-pill);
+    padding: 5px 12px;
+    font-family: inherit;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.chart-toggle:hover {
+    background: #fff;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.chart-chevron {
+    font-size: 9px;
+    transition: transform 0.2s;
+}
+
 
 /* Photo Thumbnails */
 .photos-grid {
@@ -1042,8 +1127,10 @@ header h1 {
 }
 
 .modal-content img {
-    max-width: 90%;
-    max-height: 80%;
+    max-width: 90vw;
+    max-height: 85vh;
+    width: auto;
+    height: auto;
     object-fit: contain;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
 }
@@ -1090,12 +1177,38 @@ header h1 {
 
 #modal-caption {
     position: absolute;
-    bottom: 40px;
+    bottom: calc(20px + env(safe-area-inset-bottom));
     left: 0;
     width: 100%;
     text-align: center;
     color: #ccc;
     font-size: 18px;
+}
+
+/* Photo modal on small screens: leave room for nav arrows + caption */
+@media (max-width: 768px) {
+    .modal-content img {
+        max-width: 82vw;
+        max-height: 78vh;
+    }
+
+    .modal-prev,
+    .modal-next {
+        padding: 14px 10px;
+        font-size: 20px;
+    }
+
+    .modal-prev {
+        left: 8px;
+    }
+
+    .modal-next {
+        right: 8px;
+    }
+
+    #modal-caption {
+        font-size: 15px;
+    }
 }
 
 @media (max-width: 1000px) {
@@ -1125,6 +1238,9 @@ header h1 {
         /* Map takes remaining space */
         order: 1;
         height: auto;
+        /* Sin esto el mapa no encoge (min-height:auto) y el bottom-sheet
+           no puede crecer hasta su anclaje superior. */
+        min-height: 0;
     }
 
     #chart-container {
@@ -1134,6 +1250,7 @@ header h1 {
         order: 2;
         bottom: unset;
         right: unset;
+        left: auto;
         border-top: 1px solid var(--gray-300);
         border-right: none;
         border-bottom: 2px solid var(--gray-300);
@@ -1143,16 +1260,58 @@ header h1 {
         padding: 0.8rem;
     }
 
+    /* #6 Tirador: arrastrar para cambiar altura del panel */
+    .sheet-handle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 26px;
+        flex-shrink: 0;
+        background: transparent;
+        border: none;
+        padding: 0;
+        cursor: grab;
+        /* Imprescindible: el navegador no debe robar el gesto para scroll */
+        touch-action: none;
+        /* Por encima de .details-container (z-index 100) para poder arrastrar
+           tambien con la ficha de ruta abierta. */
+        position: relative;
+        z-index: 101;
+    }
+
+    .sheet-handle:active {
+        cursor: grabbing;
+    }
+
+    .sheet-grabber {
+        width: 44px;
+        height: 5px;
+        border-radius: var(--radius-pill);
+        background: var(--gray-300);
+    }
+
+    .sidebar {
+        /* Sin esto el panel no baja de la altura de su contenido (la lista
+           cargada) y acaba comiendose el mapa entero. */
+        min-height: 0;
+        /* Sin `transition: height`: el anclaje es instantaneo. El arrastre ya
+           es continuo, asi que la transicion solo afectaria al salto final. */
+    }
+
     .details-container {
         position: absolute;
-        top: 0;
+        /* Deja libre el tirador del bottom-sheet: si no, el panel de detalles
+           lo tapa y no se puede redimensionar la ventana. */
+        top: 26px;
         left: 0;
         width: 100%;
-        height: 100%;
+        height: calc(100% - 26px);
         border-radius: 0;
         z-index: 100;
         padding: 1rem;
     }
+
 
     .sidebar.details-open .sidebar-content {
         display: none;
@@ -1255,9 +1414,45 @@ header h1 {
         box-sizing: border-box;
     }
 
+    /* Replegar el perfil solo se ofrece en movil, donde el alto es escaso */
+    .chart-toggle {
+        display: flex;
+    }
+
+    /* Colapsado: desaparece la barra y solo queda el boton flotando.
+       OJO: altura fija, nunca `auto`. Con `auto` el canvas responsive de
+       Chart.js dimensiona al padre y el padre al canvas: crece sin parar. */
+    #chart-container.collapsed {
+        height: 40px !important;
+        background: transparent;
+        border-top: none;
+        /* El mapa de debajo sigue clicable; el boton se reactiva aparte. */
+        pointer-events: none;
+    }
+
+    /* !important obligatorio: Chart.js escribe `display: block` inline en el
+       canvas al ser responsive, y lo inline gana a una regla de clase. */
+    #chart-container.collapsed canvas {
+        display: none !important;
+    }
+
+    #chart-container.collapsed .chart-toggle {
+        pointer-events: auto;
+    }
+
+    #chart-container.collapsed .chart-chevron {
+        transform: rotate(180deg);
+    }
+
     /* Show floating button and hide sidebar filters in mobile */
     .floating-btn {
         display: flex;
+    }
+
+    /* Con la ficha de ruta abierta el FAB estorba. Si el navegador no soporta
+       :has(), la regla se ignora y el boton sigue visible: sin rotura. */
+    #app:has(.sidebar.details-open) .floating-btn {
+        display: none;
     }
 
     .sidebar .filters {
@@ -1307,6 +1502,11 @@ header h1 {
     /* FAB no se solapa con la sidebar lateral */
     .floating-btn {
         bottom: calc(15px + env(safe-area-inset-bottom));
+    }
+
+    /* En lateral no hay bottom-sheet */
+    .sheet-handle {
+        display: none;
     }
 }
 
@@ -1579,6 +1779,16 @@ html[data-theme="dark"] .details-container {
     box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
 }
 
+html[data-theme="dark"] .close-details-btn {
+    background: rgba(26, 31, 38, 0.75);
+    color: #c7d0da;
+}
+
+html[data-theme="dark"] .close-details-btn:hover {
+    background: rgba(26, 31, 38, 0.95);
+    color: var(--text-color);
+}
+
 html[data-theme="dark"] .stat-item {
     background-color: #222932;
     border-color: #2f3945;
@@ -1600,6 +1810,26 @@ html[data-theme="dark"] h4 { color: var(--text-color); }
 html[data-theme="dark"] #chart-container {
     background-color: rgba(20, 24, 30, 0.92);
     border-top-color: #2a323c;
+}
+
+html[data-theme="dark"] #chart-container.collapsed {
+    background-color: transparent;
+}
+
+html[data-theme="dark"] .chart-toggle {
+    background: rgba(34, 41, 50, 0.92);
+    border-color: #3a434f;
+    color: #c7d0da;
+}
+
+html[data-theme="dark"] .chart-toggle:hover {
+    background: #2c3540;
+    color: #fff;
+    border-color: var(--primary-color);
+}
+
+html[data-theme="dark"] .sheet-grabber {
+    background: #3a434f;
 }
 
 html[data-theme="dark"] .routes-table td { border-bottom-color: #2a323c; }

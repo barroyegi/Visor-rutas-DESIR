@@ -531,7 +531,6 @@ export function renderRouteDetailsError(onRetry) {
   const contentDiv = openDetailsPanel();
   contentDiv.innerHTML = `
     <div class="details-header">
-      <h3></h3>
       <button class="close-details-btn" id="close-details-btn">&times;</button>
     </div>
     <div class="details-state">
@@ -606,9 +605,9 @@ export function renderRouteDetails(attributes, allVariants = []) {
 
   contentDiv.innerHTML = `
     <div class="details-header">
-      <h3>${escapeHtml(headerAttributes[config.fields.name])}</h3>
       <button class="close-details-btn" id="close-details-btn">&times;</button>
     </div>
+    <h3 class="details-title">${escapeHtml(headerAttributes[config.fields.name])}</h3>
 
     ${allVariants.length > 1 ? (() => {
       const getVName = (v) => (v[config.fields.variantName] || v[config.fields.name] || "").trim();

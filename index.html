@@ -51,6 +51,10 @@
 
     <div class="main-container">
       <aside class="sidebar">
+        <!-- Tirador del bottom-sheet (solo movil vertical) -->
+        <button class="sheet-handle" id="sheet-handle" aria-label="Ajustar altura del panel">
+          <span class="sheet-grabber"></span>
+        </button>
         <div class="sidebar-overlay"></div>
         <div class="sidebar-content">
           <div class="filters">
@@ -126,6 +130,10 @@
       </aside>
       <main id="viewDiv"></main>
       <div id="chart-container">
+        <button id="chart-toggle" class="chart-toggle" aria-expanded="true" aria-controls="elevation-chart">
+          <span data-i18n="elevationProfile">Perfil de altitud</span>
+          <span class="chart-chevron" aria-hidden="true">▼</span>
+        </button>
         <canvas id="elevation-chart"></canvas>
       </div>
     </div>

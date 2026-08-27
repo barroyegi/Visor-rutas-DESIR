@@ -38,6 +38,12 @@ const allRoutesLayerViewReady = new Promise(resolve => { resolveAllRoutesLayerVi
 let currentRouteGeometry = null;
 let currentRouteSamples = null;
 
+// Resolved against the page URL so the icon loads from whatever path the app is
+// deployed under (domain root or a subfolder). Vite rewrites asset URLs in HTML
+// and CSS, but not string literals inside JS, so this has to be built manually
+// from BASE_URL instead of being hardcoded as "/icons/hiking.svg".
+const HIKING_ICON = new URL(`${import.meta.env.BASE_URL}icons/hiking.svg`, window.location.href).href;
+
 export async function initializeMap(containerId) {
     const openTopoLayer = new WebTileLayer({
         urlTemplate: "https://{subDomain}.tile.opentopomap.org/{level}/{col}/{row}.png",
@@ -212,9 +218,9 @@ export async function initializeMap(containerId) {
             type: "simple",
             symbol: {
                 type: "picture-marker",
-                url: "/icons/hiking.svg",
-                width: "30px",
-                height: "30px"
+                url: HIKING_ICON,
+                width: "24px",
+                height: "24px"
             }
         },
         // featureReduction: {
@@ -363,9 +369,9 @@ export function highlightPoint(objectId) {
             // instead of cloning a symbol that may be null.
             highlightedGraphic.symbol = {
                 type: "picture-marker",
-                url: "/icons/hiking.svg",
-                width: "40px",
-                height: "40px"
+                url: HIKING_ICON,
+                width: "32px",
+                height: "32px"
             };
         }
     });
@@ -375,9 +381,9 @@ export function removeHighlight() {
     if (highlightedGraphic) {
         highlightedGraphic.symbol = {
             type: "picture-marker",
-            url: "/icons/hiking.svg",
-            width: "30px",
-            height: "30px"
+            url: HIKING_ICON,
+            width: "24px",
+            height: "24px"
         };
         highlightedGraphic = null;
     }
@@ -662,8 +668,14 @@ export async function selectRouteGroup(selectedObjectId, allVariantAttributes) {
     samplesCache = {}; // Nuevo grupo: limpiar caché de samples
 
     const hasMultipleVariants = allVariantAttributes.length > 1;
-    // If multiple variants and no explicit selection, open without selecting any
-    const effectiveSelectedId = hasMultipleVariants ? null : selectedObjectId;
+    // Pre-select the variant through which the group was accessed (the clicked
+    // start point / list card). Only fall back to the general view (no variant
+    // selected) for multi-variant groups when the caller passed no valid id.
+    const hasValidSelection = selectedObjectId !== null && selectedObjectId !== undefined
+        && allVariantAttributes.some(v => Number(v.OBJECTID) === Number(selectedObjectId));
+    const effectiveSelectedId = hasValidSelection
+        ? Number(selectedObjectId)
+        : (hasMultipleVariants ? null : selectedObjectId);
 
     // Fetch every variant's geometry in a single request instead of one per
     // variant. On failure, tell the UI so it can show an error state.

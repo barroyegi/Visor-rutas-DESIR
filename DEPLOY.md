@@ -1,71 +1,172 @@
 # Manual de Despliegue - Visor de Rutas de Senderismo
 
-Este proyecto es una aplicación web independiente (Frontend) construida con **Vite** y **ArcGIS API for JavaScript**.
+Aplicación web **100% estática** (Frontend) construida con **Vite** y **ArcGIS API for JavaScript**.
 
-## Requisitos Previos
+> **Resumen para el administrador del servidor:** la aplicación son ficheros estáticos
+> (HTML/JS/CSS). **No requiere backend**: ni Node.js, ni PHP, ni base de datos en tiempo
+> de ejecución. Basta con un servidor web que sirva la carpeta `dist/` por HTTPS.
+> Node.js solo hace falta para *construir* el proyecto, no para servirlo.
 
-- **Node.js** (v14 o superior) instalado.
-- Una cuenta de **ArcGIS Online** (o ArcGIS Enterprise) para alojar los datos.
-- (Opcional) Una **API Key** de ArcGIS Platform si los datos son privados o si usas servicios de basemaps premium.
+---
 
-## Instalación
+## 1. Requisitos
 
-1. Clonar o descargar este repositorio.
-2. Abrir una terminal en la carpeta del proyecto (`visor-rutas`).
-3. Instalar las dependencias:
-   ```bash
-   npm install
-   ```
-4. Copiar `.env.example` a `.env` y rellenar `VITE_ARCGIS_API_KEY` con tu API Key de ArcGIS. Este archivo no debe subirse nunca a git (ya está en `.gitignore`).
+### Para construir (máquina de build)
 
-## Configuración de Datos (ArcGIS Online)
+- **Node.js 20.19+ o 22.12+** (lo exige Vite 7; el `package.json` de Vite declara
+  `"engines": { "node": "^20.19.0 || >=22.12.0" }`). Con versiones antiguas el build falla.
+  - Probado con Node v20.19.0 y npm 10.8.2.
+- Acceso a internet para `npm ci` (descarga de dependencias).
 
-La aplicación espera una **Feature Layer** (Capa de Entidades) con las rutas de senderismo (Líneas).
+### Para servir (servidor de producción)
 
-### Esquema de Datos
-Asegúrate de que tu capa en ArcGIS Online tenga los siguientes campos (o ajusta `src/config.js`):
+- Un **servidor web estático**: Nginx, Apache, IIS, Amazon S3, Azure Blob Storage...
+- **HTTPS obligatorio.** La aplicación consume APIs por HTTPS; si se sirve por HTTP el
+  navegador bloquea las peticiones por *mixed content*.
+- **No hace falta Node.js en el servidor** si el build se genera en otra máquina (opción A).
+- **No hace falta regla de rewrite / SPA fallback**: es una única página, sin router de cliente.
 
-| Nombre del Campo | Tipo de Dato | Descripción |
-|------------------|--------------|-------------|
-| `Name`           | String       | Nombre de la ruta |
-| `Distance`       | Double       | Distancia (km) |
-| `ElevationGain`  | Integer      | Desnivel positivo (m) |
-| `Difficulty`     | String       | Dificultad (Easy, Medium, Hard) |
-| `Duration`       | String       | Duración estimada (ej. "2h 30m") |
+---
 
-### Configuración de la App
+## 2. Estrategias de despliegue
 
-Edita el archivo `src/config.js`:
+| Opción | Qué se sube | ¿Node en el servidor? | Recomendado |
+|--------|-------------|------------------------|-------------|
+| **A** | La carpeta `dist/` ya construida | **No** | ✅ Sí |
+| **B** | El repositorio; se ejecuta `npm ci && npm run build` en el servidor | Sí (solo para el build) | Si se automatizan despliegues |
+| **C** | Servir con `serve` / `http-server` de Node | Sí (permanente) | ❌ No en producción |
 
-1. **`routesLayerUrl`**: Pega la URL de tu Feature Layer de rutas.
-   - Ejemplo: `https://services.arcgis.com/.../FeatureServer/0`
-2. **`startPointsLayerUrl`**:
-   - Si tienes una capa separada de puntos de inicio, pega su URL.
-   - Si no, usa la misma URL que `routesLayerUrl` (la app intentará extraer los puntos).
-3. **`apiKey`**: Se lee de la variable de entorno `VITE_ARCGIS_API_KEY` (ver paso 4 de Instalación). No la pegues directamente en `src/config.js`, ya que ese archivo se sube a git.
-4. **`fields`**: Ajusta el mapeo de nombres de campos si tus campos se llaman diferente (ej. `NOMBRE_RUTA` en lugar de `Name`).
+`npm run preview` es solo para pruebas locales. **Nunca usarlo como servidor de producción.**
 
-## Ejecución en Desarrollo
+---
 
-Para probar la aplicación localmente:
+## 3. Instalación y build
 
 ```bash
-npm run dev
+npm ci                # instalación reproducible (usa package-lock.json)
+npm run build         # genera dist/
 ```
-Abre la URL que aparece en la terminal (normalmente `http://localhost:5173`).
 
-## Despliegue en Producción
+Antes del build, definir la variable de entorno `VITE_ARCGIS_API_KEY`
+(fichero `.env` local, o variables de entorno del sistema de CI/hosting).
 
-1. Asegúrate de que `VITE_ARCGIS_API_KEY` esté definida en el entorno donde se ejecuta el build (archivo `.env` local, o la configuración de variables de entorno de Netlify/Vercel/GitHub Actions, etc.). Vite la incrusta en el bundle durante el `build`, no en tiempo de ejecución.
-2. Generar los archivos estáticos:
-   ```bash
-   npm run build
-   ```
-2. El resultado estará en la carpeta `dist/`.
-3. Sube el contenido de la carpeta `dist/` a cualquier servidor web estático:
-   - GitHub Pages
-   - Netlify / Vercel
-   - Apache / Nginx
-   - Amazon S3 / Azure Blob Storage
+Resultado: carpeta **`dist/`**, aproximadamente **16 MB** y **716 ficheros**
+(la mayoría son *chunks* de ArcGIS que se cargan bajo demanda).
 
-No se requiere backend (Node.js, PHP, etc.) para servir la aplicación, ya que es 100% estática y consume datos directamente de la API REST de ESRI.
+---
+
+## 4. Variable de entorno y seguridad de la API Key
+
+```
+VITE_ARCGIS_API_KEY=<tu_api_key_de_arcgis>
+```
+
+- Se lee en **tiempo de build**, no en tiempo de ejecución. Vite la **incrusta en el bundle**.
+- **Implicación de seguridad:** la key queda visible en el JavaScript público. Por tanto
+  **debe estar restringida por dominio/referrer** en el portal de ArcGIS. Si cambia el
+  dominio de producción, hay que actualizar esa restricción.
+- El fichero `.env` **no debe subirse a git** (ya está en `.gitignore`).
+- La API Key actual **caduca en diciembre de 2026**.
+
+---
+
+## 5. Configuración del servidor web
+
+### Compresión (importante)
+
+Activar **gzip o brotli**. El bundle principal ocupa ~2,4 MB sin comprimir y ~733 KB en gzip.
+
+Ejemplo Nginx:
+
+```nginx
+gzip on;
+gzip_types text/css application/javascript image/svg+xml font/woff2;
+gzip_min_length 1024;
+```
+
+### Cache
+
+Los ficheros de `assets/` llevan hash en el nombre, se pueden cachear indefinidamente.
+`index.html` no debe cachearse.
+
+```nginx
+location /assets/ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+}
+location = /index.html {
+    add_header Cache-Control "no-cache";
+}
+```
+
+### Tipos MIME
+
+Asegurar que el servidor sirve correctamente: `.js`, `.css`, `.svg`, `.woff2`, `.woff`, `.ttf`.
+En **IIS**, `.woff2` no siempre viene configurado de serie y hay que añadirlo
+(`font/woff2`). No se usan ficheros `.wasm`.
+
+---
+
+## 6. Conectividad de red (revisar en entornos corporativos)
+
+El servidor **no realiza ninguna llamada saliente**. Es el **navegador del usuario final**
+el que debe poder alcanzar estos dominios:
+
+| Dominio | Uso | Crítico |
+|---------|-----|---------|
+| `services5.arcgis.com` | Datos de rutas (Feature Layer) | **Sí** |
+| `*.arcgis.com` | Mapas base de Esri (hybrid, topo) | Sí |
+| `*.tile.opentopomap.org` | Mapa base OpenTopoMap | No (opcional) |
+| `fonts.googleapis.com`, `fonts.gstatic.com` | Fuente Poppins | No (degrada) |
+| `www.navarra.es` | Logo IDENA de la cabecera | No |
+| `senderos.nafarmendi.org` | Enlaces a la ficha del sendero | No |
+
+> Si la red corporativa usa proxy o firewall restrictivo, **confirmar que estos dominios
+> están permitidos**. Es el principal punto de fallo en despliegues en intranet.
+
+Si se aplica una **Content-Security-Policy**, hay que incluir esos dominios en
+`connect-src`, `img-src`, `style-src` y `font-src`.
+
+---
+
+## 7. Origen de los datos (ArcGIS Online)
+
+Los datos **no se alojan en el servidor**: residen en ArcGIS Online y se consumen por su
+API REST. La capa debe ser **pública** o accesible con la API Key configurada.
+
+Configuración en `src/config.js`:
+
+- **`routesLayerUrl`** y **`startPointsLayerUrl`**: URL de la Feature Layer de rutas
+  (actualmente ambas apuntan a la misma capa; los puntos de inicio se derivan de ella).
+- **`fields`**: mapeo de nombres de campo.
+
+### Esquema de datos real
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `OBJECTID` | OID | Identificador |
+| `name_1` | String | Nombre de la ruta |
+| `cod_ruta` | String | Código de ruta (agrupa variantes/etapas) |
+| `longitud_km` | Double | Distancia (km) |
+| `pos_elev` / `neg_elev` | Integer | Desnivel positivo / negativo (m) |
+| `mide_difficulty` | Integer | Dificultad MIDE (1-4) |
+| `time_one_way` | Date | Duración estimada (solo la parte horaria) |
+| `Matricula` | String | Categoría: `GR`, `PR`, `SL` |
+| `Variante` | String | Nombre de la variante/etapa |
+| `elevation_profile` | String (JSON) | Perfil de elevación |
+| `images` | String | URLs de fotos separadas por `\|` |
+| `URL_Descarga` | String | Enlace al GPX |
+| `XStart` / `YStart` | Double | Coordenadas del punto de inicio |
+| `description`, `Descripcion_fr`, `Descripcion_eus` | String | Descripciones por idioma |
+
+Volumen actual: **247 rutas**.
+
+---
+
+## 8. Desarrollo local
+
+```bash
+npm install
+npm run dev      # http://localhost:5173
+```
+
+Requiere un navegador con **WebGL** habilitado (lo exige el MapView de ArcGIS).

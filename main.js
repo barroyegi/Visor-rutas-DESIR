@@ -1,8 +1,9 @@
 import "@arcgis/core/assets/esri/themes/light/main.css";
-import { initializeMap, renderStartPoints, filterStartPoints, zoomToGraphics, onExtentChange, selectRouteGroup } from './src/map.js';
+import { initializeMap, renderStartPoints, filterStartPoints, zoomToGraphics, onExtentChange, selectRouteGroup, switchVariant } from './src/map.js';
 import { fetchRoutesList, fetchStartPoints } from './src/data.js';
 import { renderTable, renderRoutesError, initFilters, renderRouteDetails, renderRouteDetailsLoading, renderRouteDetailsError, setupMobileFilters } from './src/ui.js';
 import { initLanguageSwitcher } from './src/i18n.js';
+import { initChartCollapse, initSidebarSheet } from './src/mobile-ux.js';
 import { config } from './src/config.js';
 
 /**
@@ -10,9 +11,10 @@ import { config } from './src/config.js';
  */
 function initTheme() {
     const root = document.documentElement;
+    // Claro por defecto: ya no se sigue `prefers-color-scheme`. Solo una
+    // eleccion guardada explicitamente puede activar el oscuro.
     const stored = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const theme = stored || (prefersDark ? "dark" : "light");
+    const theme = stored || "light";
     root.setAttribute("data-theme", theme);
 
     const toggle = document.getElementById("theme-toggle");
@@ -44,6 +46,10 @@ function buildVariantGroups(routes) {
 async function init() {
     // Apply theme and show the loading skeleton before anything slow runs.
     initTheme();
+    // Controles de UI movil: se enganchan antes que el mapa para que respondan
+    // aunque la carga del mapa tarde.
+    initChartCollapse();
+    initSidebarSheet();
     renderTable([], "routes-list", new Map(), true);
 
     // 1. Initialize Map
@@ -170,6 +176,20 @@ async function init() {
                 break;
             }
         }
+
+        // If the clicked start point belongs to the group already open, switch
+        // the active variant in place instead of re-opening the whole group
+        // (no re-fetch, no full-group re-zoom). Mirrors the variant-pill click.
+        const detailsOpen = document.querySelector(".details-container")?.classList.contains("active");
+        const inCurrentGroup = detailsOpen && currentVariants.some(v => Number(v.OBJECTID) === objectId);
+        if (inCurrentGroup) {
+            const selected = currentVariants.find(v => Number(v.OBJECTID) === objectId);
+            currentRoute = selected;
+            renderRouteDetails(selected, currentVariants);
+            switchVariant(objectId);
+            return;
+        }
+
         if (selectedVariants) {
             selectRouteGroup(objectId, selectedVariants);
         } else {
