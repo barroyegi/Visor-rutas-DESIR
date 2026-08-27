@@ -831,7 +831,7 @@ function openPhotoModal(images, index) {
   const modalImg = document.getElementById("modal-image");
   const caption = document.getElementById("modal-caption");
 
-  modal.style.display = "block";
+  modal.classList.add("active");
   updateModalImage();
 
   // Close modal events
@@ -877,7 +877,7 @@ function showPrevPhoto() {
 }
 
 function closePhotoModal() {
-  document.getElementById("photo-modal").style.display = "none";
+  document.getElementById("photo-modal").classList.remove("active");
   document.removeEventListener("keydown", onModalKeydown);
 }
 export function setupMobileFilters() {
